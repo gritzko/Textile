@@ -1,5 +1,7 @@
 /*
  *  Java CT-RE
+ *  Version Control in Causal Trees
+ *  Implementated in Regular Expressions
  *  (c) Victor Grishchenko 2010
  */
 package javactre;
