@@ -70,6 +70,65 @@ public class WeaveTest {
     }
 
 
-    // test unaware undeletion hard!!!
+    @Test
+    public void testAddPatch5c () {
+        Weave weave = new Weave("Test");
+        weave.loadWeave5cFromString
+                ("ॐ\0\0\0\0T\0\0a1Ea1a2Sa2a3Ta3a4\0a4b3۝\0\0\0\1");
+        assertEquals("TEST",weave.getText1());
+        weave.addPatch5c("\ba3b1");
+        assertEquals("TET",weave.getText1());
+        weave.addPatch5c("Xa2b2");
+        assertEquals("TEXT",weave.getText1());
+        assertEquals("TET",weave.getText1Version("a4b1"));
+    }
+
+
+    @Test
+    public void testInsertMarkSegment () {
+        Weave weave = new Weave("Test");
+        weave.loadWeave5cFromString
+                ("ॐ\0\0\0\0T\0\0a1Ea1a2Xa2b2Sa2a3\ba3b1Ta3a4۝\0\0\0\1");
+        weave.addPatch5c("\0a4c1");
+        String text = weave.getText1Version("c1");
+        assertEquals("TEXT",text);
+    }
+
+
+    @Test
+    public void testAwareSiblings () {
+        Weave weave = new Weave("Test");
+        weave.loadWeave5cFromString
+                ("ॐ\0\0\0\0T\0\0a1Ea1a2Sa2a3Ta3a4۝\0\0\0\1");
+        weave.addPatch5c("\0a4c1Ka2c2");
+        assertEquals("TEKST",weave.getText1());
+    }
+
+
+    @Test
+    public void testUnawareSiblings () {
+        Weave weave = new Weave("Test");
+        weave.loadSourcesFromString("Alice\nBob\nCarol\n");
+        weave.loadWeave5cFromString
+                ("ॐ\0\0\0\0<\0\0a1>a1a2۝\0\0\0\1");
+        weave.addPatch5c("\0a2b1Aa1b2");
+        weave.addPatch5c("Ba1c1");
+        assertEquals("<AB>",weave.getText1());
+    }
+
+
+    @Test
+    public void testUnawareUndeletion () {
+        Weave weave = new Weave("Test");
+        weave.loadSourcesFromString("Alice\nBob\nCarol\n");
+        weave.loadWeave5cFromString
+                ("ॐ\0\0\0\0A\0\0a1Ca1a2۝\0\0\0\1");
+        weave.addPatch5c("\ba1b1");
+        weave.addPatch5c("Ba1c1\ba1c2");
+        weave.addPatch5c("\7a1b2");
+        assertEquals("BC",weave.getText1());
+        weave.addPatch5c("\0c2c3\7a1b4");
+        assertEquals("ABC",weave.getText1());
+    }
 
 }

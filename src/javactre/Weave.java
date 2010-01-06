@@ -198,8 +198,34 @@ public class Weave {
     }
   
 
-    protected void  insertDeletions (String bs5c) {
+    protected void  insertDeletionSegment (String bs5c) {
+        // compose regex
+        String headver = bs5c.substring(3,5);
+        String victims = positions2filtre(bs5c.replaceAll(".(..)..", "$1"));
+        // insert deletions, just after
+        weave5c = weave5c.replaceAll
+                ("(.{5}*?)(...("+victims+"))","$1$2\b$3"+headver);
+        // you may undelete only deletes you are aware of!!!
+        // mass deletions may claim they have the same offset in a feed
+        // we dont care that much about offsets of backspaces as nothing
+        //      is inserted after a backspace
+        // FIXED possibility of an explosion
+    }
 
+
+    protected void  insertUndeletionSegment (String undo5c) {
+        String headver = undo5c.substring(3,5);
+        String affects = version2filtre(getAwarenessClosure(headver));
+        String recovers = positions2filtre(undo5c.replaceAll(".(..)..", "$1"));
+        weave5c = weave5c.replaceAll(
+                "(.{5}*?)(\b("+recovers+")("+affects+"))",
+                "$1\7$3"+headver+"$2"
+                );
+    }
+
+
+    protected void  insertMarkSegment (String marks5c) {
+        weave5c += marks5c; // append after ۝
     }
 
 
@@ -212,95 +238,61 @@ public class Weave {
         if (feedLength(feed)!=start)
             throw new IllegalArgumentException("feed gap");
         String aware_cone = flatten_version(feed_awareness[feed]+attach_pos);
+        String aware_filtre = version2filtre(aware_cone);
         String new_weave5c = this.weave5c.replaceFirst(
-                "^(.{5}*?)(..."+attach_pos+")(?=[^\\b]..("+aware_cone+"))",
+                "^(.{5}*?)(..."+attach_pos+"([\b\7\0]"+attach_pos+
+                    "..)*)(?=...("+aware_filtre+"))",
                 "$1$2"+segment5c
                 );
         if (new_weave5c.length()==weave5c.length()) { // tough segment
             aware_cone = getAwarenessClosure(aware_cone);
-            /*Pattern general = Pattern.compile (
-                    "^(.{5}*?)(..."+attach_pos+")"+ // head, attachment point
-                    "(\\b"+attach_pos+"..)*" + // backspaces
-                    "((."+attach_pos+"..)(.{5})*?)*" + // unaware sibling causality blocks
-                    "(?=[^\\b]("+aware_cone+")("+aware_cone+"))(.{5}+)"  // tail
-                    );*/
             // grab siblings
+            String siblings = this.weave5c.replaceAll
+                    ("([^\b\7\0]"+attach_pos+"..)|.{5}", "$1");
             // loop; find limiting
+            String insert_before = "(?!."+attach_pos+"..)(.("+aware_filtre+")..)";
+            int i=0;
+            while (i<siblings.length()) {
+                String sibling = siblings.substring(i,i+2);
+                if (aware_cone.compareTo(getAwarenessClosure(sibling)) > 0) {
+                    insert_before = "."+attach_pos+sibling;
+                    break;
+                }
+                i+=2;
+            }
             // insert by re
+            new_weave5c = this.weave5c.replaceFirst(
+                "^(.{5}*?)(..."+attach_pos+")(.{5})*?("+insert_before+")",
+                "$1$2$3"+segment5c+"$4"
+                );
         }
-        this.deps5c = null;
-        this.text1 = this.text3 = null;
-        this.weave3 = null;
         this.weave5c = new_weave5c;
-        this.feed_awareness[feed] = aware_cone;
-        this.version2 = flatten_version(this.version2 + feed + start);
     }
 
+    
     /** Integrates patches into the weave; returns the
-        resuting version string. *
-    String  compile ( ) {
-        printesc("patch5c: "+this.patch5c.toString());
-        // break patch string into solid chunks
-        Pattern split_patch5c_re = Pattern.compile("...((..).\\2)*.."); // FIXME: misc feeds
-        Matcher split_patch5c = split_patch5c_re.matcher(this.patch5c.toString());
-        List<String> chunks5c = new LinkedList<String>();
-        StringBuffer attach_pos_re = new StringBuffer();
-        Map<String,String> ins_chunks = new HashMap<String,String>();
-        while (split_patch5c.find()) {
-            String chunk = split_patch5c.group();
-            String attach = chunk.substring(1, 3);
-            chunk = chunk.replaceAll("(.)(..)(..)","$1$3$2"); // FIXME: use 5c
-            chunks5c.add(chunk); // FIXME: non-existing attachment points (deps)
-            if (attach_pos_re.length()>0)
-                attach_pos_re.append('|');
-            attach_pos_re.append(re_screen(attach));
-            ins_chunks.put(attach, chunk);
+        resuting version string. */
+    public void     addPatch5c (String patch5c) {
+        // split into insert/delete/undelete/aware segments
+        Pattern segments = Pattern.compile
+                ("((?:[\b\7\0].{4})*)|(...(?:(..).\\3)*..)");
+        Matcher m = segments.matcher(patch5c);
+        while (m.find()) {
+            if (m.group(1)!=null) {
+                switch (m.group(1).charAt(0)) {
+                    case '\b':  insertDeletionSegment(m.group(1));
+                    case '\7':  insertUndeletionSegment(m.group(1));
+                    case '\0':  insertMarkSegment(m.group(1));
+                }
+            } else
+                insertSegment(m.group(2));
         }
-        // compose cap regex for att points
-        String attach_pos = attach_pos_re.toString();
-        printesc("attach: "+attach_pos);
-        Pattern attach_re = Pattern.compile
-                ("((?:.{5})*?)(.("+attach_pos+")..)(?=.{5})?", Pattern.MULTILINE);
-        Matcher inserter = attach_re.matcher(this.weave5);
-        // iterate weave for attachment points
-        StringBuffer new_weave5 = new StringBuffer ();
-        int end = 0;
-        while (inserter.find()) {
-            String skip = inserter.group(1);
-            String anchor = inserter.group(2);
-            String anchor_pos = inserter.group(3);
-            String next_atom = null;//inserter.group(4);
-            String ins_chunk = ins_chunks.get(anchor_pos); // FIXME: may be many
-            if (next_atom!=null) {  // FIXME: unaware siblings
-            }
-            if (skip!=null)
-                new_weave5.append(skip);
-            new_weave5.append(anchor);
-            // insert chunk if possible
-            new_weave5.append(ins_chunk);
-            ins_chunks.remove(anchor_pos);
-            end = inserter.end();
-        }
-        if (end!=-1)
-            new_weave5.append(weave5.substring(end));
-        // chunks remaining: unaware siblings!
-        for ( String unaware : ins_chunks.keySet() ) {
-            // search for att points + causal subtrees
-            Pattern unaware_seek = Pattern.compile
-                    (".{5}.!!..(...!!(...!!)*?)+");
-            // insert before the first >awarenessCode chunk
-        }
-        // finally, change state
-        this.weave5 = new_weave5.toString();
-        printesc("resulting weave: "+weave5);
-        this.patch5c = new StringBuffer();
-        this.text3 = null;
-        this.text1 = null;
-        this.weave3 = null;
-        this.deps5 = null;
-        this.version2 = patch_version2;
-        return getVersion2();
-    }*/
+        this.weave3 = this.deps5c = this.text1 = this.text3 = null;
+        //this.feed_awareness[feed] = aware_cone;
+        //this.version2 = flatten_version(this.version2 + feed + start);
+        // FIXME
+    }
+
 
     String  setNewTextVersion (String new_text, String source) {
         String text = getText1();
@@ -336,20 +328,6 @@ public class Weave {
     }
 
 
-    /*static String version12regex (String version1) {
-        StringBuffer ret = new StringBuffer();
-        for(int i=0; i<version1.length(); i++) {
-            if (i>0)
-                ret.append('|');
-            ret.append(Character.toChars(i));
-            ret.append("[\0-");
-            ret.append(re_screen(version1.substring(i,i+1)));
-            ret.append("]");
-        }
-        return ret.toString();
-    }*/
-
-
     static public String flatten_version (String version) {
         return version;
     }
@@ -366,10 +344,17 @@ public class Weave {
     }
 
 
-    static String  version2filtre (String ver2) {
+    static String   version2filtre (String ver2) {
         ver2 = re_screen(ver2);
         String re = ver2.replaceAll("(\\\\.|.)(\\\\.|.)", "|$1[\u0000-$2]");
         return "\0[\0-\1]"+re;
+    }
+
+
+    static String   positions2filtre (String pos2) {
+        pos2 = re_screen(pos2);
+        String re = pos2.replaceAll("(\\\\.|.)(\\\\.|.)", "|$1$2");
+        return re.substring(1);
     }
 
 
@@ -387,7 +372,7 @@ public class Weave {
         String text3c = weave5c.replaceAll(
                 "(...(..))(\b\\2..)+|[\b\u0000].{4}|.\0.\0.|(.)..(..)",
                 "$4$5"
-                );
+                ); // FIXME: each deletion must be undone separately
         return text3c;
     }
 
