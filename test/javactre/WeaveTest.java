@@ -21,7 +21,7 @@ public class WeaveTest {
      */
     @Test
     public void testRedundant2version() {
-        String ver2 = Weave.redundant2version("aad.bbd+d*ac");
+        String ver2 = Weave.straighten_weft2("aad.bbd+d*ac");
         assertEquals("d.bbac",ver2);
     }
 
@@ -60,12 +60,12 @@ public class WeaveTest {
     public void testGetText () {
         Weave weave = new Weave("Test");
         weave.loadWeave5cFromString
-                ("ॐ\0\0\0\0T\0\0a1Ea1a2Xa2b2Sa2a3\ba3b1Ta3a4\0a4b3۝\0\0\0\1");
+                ("ॐ\0\0\0\0T\0\0a1Ea1a2Xa2b2Sa2a3\ba3b1Ta3a4۝\0\0\0\1\0a4b3");
         String text = weave.getText1();
         assertEquals("TEXT",text);
-        text = weave.getText1Version("a4");
+        text = weave.getText1ByWeft2("a4");
         assertEquals("TEST",text);
-        text = weave.getText1Version("a4b1");
+        text = weave.getText1ByWeft2("a4b1");
         assertEquals("TET",text);
     }
 
@@ -80,7 +80,7 @@ public class WeaveTest {
         assertEquals("TET",weave.getText1());
         weave.addPatch5c("Xa2b2");
         assertEquals("TEXT",weave.getText1());
-        assertEquals("TET",weave.getText1Version("a4b1"));
+        assertEquals("TET",weave.getText1ByWeft2("a4b1"));
     }
 
 
@@ -90,7 +90,7 @@ public class WeaveTest {
         weave.loadWeave5cFromString
                 ("ॐ\0\0\0\0T\0\0a1Ea1a2Xa2b2Sa2a3\ba3b1Ta3a4۝\0\0\0\1");
         weave.addPatch5c("\0a4c1");
-        String text = weave.getText1Version("c1");
+        String text = weave.getText1ByWeft2("c1");
         assertEquals("TEXT",text);
     }
 
@@ -130,5 +130,25 @@ public class WeaveTest {
         weave.addPatch5c("\0c2c3\7a1b4");
         assertEquals("ABC",weave.getText1());
     }
+
+
+    @Test
+    public void testSetText () {
+        Weave weave = new Weave("Test");
+        weave.loadSourcesFromString("Alice\nBob\nCarol\n");
+        weave.setNewText("TEST","Alice");
+        weave.setNewText("TET","Bob");
+        weave.setNewText("TEXT","Carol");
+        assertEquals(
+                "ॐ\0\0\0\0T\0\0a1Ea1a2Xa2c1Sa2a3\ba3b1Ta3a4۝\0\0\0\1",
+                weave.getWeave5c()
+                );
+        weave.markWeft("Bob");
+        assertEquals(
+                "ॐ\0\0\0\0T\0\0a1Ea1a2Xa2c1Sa2a3\ba3b1Ta3a4۝\0\0\0\1\0a4b2\0c1b2",
+                weave.getWeave5c()
+                );
+}
+
 
 }
