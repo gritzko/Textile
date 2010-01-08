@@ -30,7 +30,7 @@ public class TextileTest {
     public void testVersion2filtre () {
         String weave3 = "Aa1Bb1Ca2Db1Ea*Fc@Gc]";
         String ver2 = "a1b2c[";
-        String filtre = Textile.version2filtre(ver2);
+        String filtre = Textile.weft2re(ver2);
         String re = "(.("+filtre+"))|.{3}";
         //System.err.println("re: "+re);
         String text3 = weave3.replaceAll(re,"$1");
@@ -74,8 +74,11 @@ public class TextileTest {
     public void testAddPatch5c () {
         Textile weave = new Textile("Test");
         weave.loadWeave5cFromString
-                ("ॐ\0\0\0\0T\0\0a1Ea1a2Sa2a3Ta3a4\0a4b3۝\0\0\0\1");
+                ("ॐ\0\0\0\0T\0\0a1Ea1a2Sa2a3Ta3a4۝\0\0\0\1");
+        weave.loadSourcesFromString("Alice");
+        assertEquals("Alice",weave.getSourceUri('a'));
         assertEquals("TEST",weave.getText1());
+        assertEquals('b',weave.addNewSource("Bob"));
         weave.addPatch5c("\ba3b1");
         assertEquals("TET",weave.getText1());
         weave.addPatch5c("Xa2b2");
@@ -89,8 +92,11 @@ public class TextileTest {
         Textile weave = new Textile("Test");
         weave.loadWeave5cFromString
                 ("ॐ\0\0\0\0T\0\0a1Ea1a2Xa2b2Sa2a3\ba3b1Ta3a4۝\0\0\0\1");
-        weave.addPatch5c("\0a4c1");
-        String text = weave.getText1ByWeft2("c1");
+        weave.loadSourcesFromString("Alice\nBob\nCarol");
+        weave.addPatch5c("\0a4c1\0b2c2");
+        String closure = weave.getAwarenessClosure("c2");
+        assertEquals("a4b2c2",closure);
+        String text = weave.getText1ByWeft2(closure); // closure
         assertEquals("TEXT",text);
     }
 
@@ -108,11 +114,12 @@ public class TextileTest {
     @Test
     public void testUnawareSiblings () {
         Textile weave = new Textile("Test");
-        weave.loadSourcesFromString("Alice\nBob\nCarol\n");
         weave.loadWeave5cFromString
                 ("ॐ\0\0\0\0<\0\0a1>a1a2۝\0\0\0\1");
+        weave.loadSourcesFromString("Alice\nBob\nCarol");
         weave.addPatch5c("\0a2b1Aa1b2");
-        weave.addPatch5c("Ba1c1");
+        weave.yarn_aware.add("\0\2"); // FIXME
+        weave.addPatch5c("\0b1c1Ba1c1"); //FIXME \0a2c1Ba1c1 comp-tor
         assertEquals("<AB>",weave.getText1());
     }
 
@@ -124,10 +131,12 @@ public class TextileTest {
         weave.loadWeave5cFromString
                 ("ॐ\0\0\0\0A\0\0a1Ca1a2۝\0\0\0\1");
         weave.addPatch5c("\ba1b1");
-        weave.addPatch5c("Ba1c1\ba1c2");
+        weave.yarn_aware.add("\0\2"); // FIXME yarn_aware
+        weave.addPatch5c("\0a2c0Ba1c1\ba1c2");
         weave.addPatch5c("\7a1b2");
-        assertEquals("BC",weave.getText1());
-        weave.addPatch5c("\0c2c3\7a1b4");
+        String text = weave.getText1();
+        assertEquals("BC",text);
+        weave.addPatch5c("\0c2b3\7a1b4");
         assertEquals("ABC",weave.getText1());
     }
 
