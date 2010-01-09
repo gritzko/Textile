@@ -27,6 +27,7 @@ public class Textile {
     ArrayList<String> yarn_sources;
     static diff_match_patch fraser = new diff_match_patch();
     static public char YARN_CODE_START = 'a';
+    static public char YARN_LENGTH_START = '1';
 
     public Textile(String name) {
         page_name = name;
@@ -48,7 +49,8 @@ public class Textile {
             throw new IllegalStateException("class is not clean already");
         String uris [] = source_list.split("\n");
         for(int i=0; i<uris.length; i++)
-            yarn_sources.add(uris[i]);
+            if (uris[i].length()>0)
+                yarn_sources.add(uris[i]);
     }
 
 
@@ -146,61 +148,75 @@ public class Textile {
         return i==-1 ? '\0' : (char)i;
     }
 
+
+    /** Implied: atoms are sequential. */
     public String addPatch3c(String patch3c, String source) {
-        /*StringBuilder patch5c = new StringBuilder();
-        char src = getSourceCode(source);
-        int srci = (int) src;
-        int cur = patch_version2.codePointAt(((int) src) * 2 + 1);
+        char yarn = this.getSourceCode(source);
+        if (yarn=='\0')
+            throw new IllegalArgumentException("unknown source URI");
+        int len = (int)this.getYarnLength(yarn);
+        StringBuilder patch5c = new StringBuilder();
         for (int i = 0; i < patch3c.length() / 3; i++) {
-            patch5c.append(patch3c.substring(i * 3, i * 3 + 3));
-            patch5c.append(src);
-            patch5c.append((char) (cur++));
+            patch5c.append(patch3c.charAt(i*3));
+            String cause = patch3c.substring(i*3+1, i*3+3);
+            if (cause.equals("\0\2")) {
+                patch5c.append(yarn);
+                patch5c.append((char)len);
+            } else
+                patch5c.append(cause);
+            patch5c.append(yarn);
+            patch5c.append((char)++len);
         }
-        patch_version2 = patch_version2.substring(0, srci * 2 + 1)
-                + (char) cur + patch_version2.substring(srci * 2 + 2);
-        return addPatch5c(patch5c.toString());*/
-        return null;
+        return addPatch5c(patch5c.toString());
     }
 
-    public String insert(int pos, String str, String source) {
-        char src = getSourceCode(source);
-        int threadlen = 0;//this.patch_version2.charAt(1 + 2 * (int) src);
-        String cause = pos == 0 ? "\u0950\0\0" : getText3().substring(pos * 3 - 3, pos * 3);
-        StringBuffer patch = new StringBuffer();
-        patch.append(str.charAt(0));
-        patch.append(cause.charAt(1));
-        patch.append(cause.charAt(2));
-        for (int i = 1; i < str.length(); i++) {
-            patch.append(str.charAt(i));
-            patch.append(src);
-            patch.append((char) (threadlen + i - 1));
-        }
-        return addPatch3c(patch.toString(), source);
+
+    public String getInsertionPatch3c(int pos, String str) {
+        String cause = pos == 0 ? "\0\0" : getText3().substring(pos*3 - 2, pos*3);
+        String right_sibling = pos==0 ? "" : weave5c.replaceAll
+                ("."+re_screen(cause)+"(..).*|.{5}", "$1");
+        // FIXME check everything for re_screen
+        str = str.replaceAll("(.)", "$1\0\2");
+        str = str.replaceFirst("^(.)\0\2", "$1"+cause);
+        if (right_sibling.length()>0)
+            str = '\0'+right_sibling+str;
+        return str;
     }
+
 
     /** Deletes text at the position in the current version
     of the text. */
-    public String delete(int pos, int length, String source) {
-        String chunk = getText3().substring(pos * 3, (pos + length) * 3);
-        String patch = chunk.replaceAll(".(..)", "\b$1");
-        return addPatch3c(patch, source);
+    public String getDeletionPatch3c (int pos, String erased) {
+        String chunk = getText3().substring(pos * 3, (pos + erased.length()) * 3);
+        String patch3c = chunk.replaceAll(".(..)", "\b$1");
+        return patch3c;
     }
 
-    public String getDependencies5c() {
+
+    public String   getDependencies5c() {
         if (this.deps5c == null) {
             deps5c = weave5c.replaceAll(".(.).\\1.|(.{5})", "$2");
         }
         return deps5c;
     }
 
+
+    public String   getYarnAwareness (char yarn) {
+        if (yarn_aware.size()-1<yarn)
+            return "";
+        return yarn_aware.get(yarn);
+    }
+
+
     /** Gives a crude version of     */
-    public String getAwarenessClosure(String ver2) {
+    public String   getAwarenessClosure(String ver2) {
         String closure;
         while (!ver2.equals(closure = getAwareness(ver2))) {
             ver2 = closure;
         }
         return closure;
     }
+
 
     /** For a given atom (defined by <i>fo</i> position string) gives its
     entire awareness cone, i.e. a version2 string covering atoms it is
@@ -304,7 +320,7 @@ public class Textile {
         char yarn = segment5c.charAt(3);
         char start = segment5c.charAt(4);
         String aware_cone = flatten_version
-                (yarn_aware.get(yarn) + attach_pos + segment5c.substring(3, 5));
+                (getYarnAwareness(yarn) + attach_pos + segment5c.substring(3, 5));
         String aware_filtre = weft2re(aware_cone);
         String new_weave5c = this.weave5c.replaceFirst(
                 "^((?:.{5})*?)(..." + attach_pos + "([\b\7\0]" + attach_pos
@@ -368,56 +384,60 @@ public class Textile {
                 default:
                     weaveInTextSegment(segment);
             }
-            String deps = segment.replaceAll(".(..)..", "$1");
+            String deps = segment.replaceAll(".(....)", "$1");
             while (yarn_aware.size()-1<source)
                 yarn_aware.add("\0\2");
             yarn_aware.set(source,straighten_weft2(yarn_aware.get(source)+deps));
         }
         this.weave3 = this.deps5c = this.text1 = this.text3 = null;
         this.weft2 = straighten_weft2(weft2+patch5c.replaceAll(".{3}(..)", "$1"));
-        //this.thread_awareness[thread] = aware_cone;
-        // FIXME
-        return null;
+        return weft2;
     }
 
     public String setNewText(String new_text, String source) {
         String text = getText1();
-        LinkedList<diff_match_patch.Diff> diffs =
+        LinkedList<diff_match_patch.Diff> lldiffs =
                 fraser.diff_main(text, new_text, true);
-        fraser.diff_cleanupSemantic(diffs);
-        //new ArrayList<diff_match_patch.Diff>
+        fraser.diff_cleanupSemantic(lldiffs);
+        ArrayList<diff_match_patch.Diff> diffs = // FIXME
+                new ArrayList<diff_match_patch.Diff>(lldiffs);
         for (int i = 0; i < diffs.size() - 1; i++) {
             if (diffs.get(i).operation == diff_match_patch.Operation.DELETE
                     && diffs.get(i + 1).operation == diff_match_patch.Operation.INSERT) {
                 Collections.swap(diffs, i, i + 1);
             }
         }
+        StringBuilder patch = new StringBuilder();
         int pos = 0;
         for (diff_match_patch.Diff diff : diffs) {
             if (diff.operation == diff_match_patch.Operation.DELETE) {
-                delete(pos, diff.text.length(), source);
+                patch.append(getDeletionPatch3c(pos, diff.text));
                 pos += diff.text.length();
             } else if (diff.operation == diff_match_patch.Operation.INSERT) {
-                insert(pos, diff.text, source);
+                patch.append(getInsertionPatch3c(pos, diff.text));
             } else { // EQUAL
                 pos += diff.text.length();
             }
         }
-        //compile();
-        return weft2;
+        return addPatch3c(patch.toString(), source);
     }
 
     public char getYarnLength(char source_code) {
-        String self = this.yarn_aware.get(source_code).replaceAll
+        if (yarn_aware.size()<source_code+1)
+            return (char)((int)YARN_LENGTH_START-1);
+        String self = yarn_aware.get(source_code).replaceAll
                 ("("+source_code+".)|..", "$1");
+        if (self.length()==0)
+            return (char)((int)YARN_LENGTH_START-1); // FIXME PLEASE!!!
         return self.charAt(1);
     }
 
     public String markWeft(String source) {
         char code = getSourceCode(source);
         char mark = getYarnLength(code);
-        String save_patch = weft2.replaceAll("(..)", "\0$1" + code + mark);
-        weaveInMarkSegment(save_patch);
+        mark++;
+        String save_patch = weft2.replaceAll("(..)", "\0$1"+code+mark);
+        addPatch5c(save_patch);
         return weft2;
     }
 

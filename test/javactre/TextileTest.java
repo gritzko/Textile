@@ -146,18 +146,19 @@ public class TextileTest {
         Textile weave = new Textile("Test");
         weave.loadSourcesFromString("Alice\nBob\nCarol\n");
         weave.setNewText("TEST","Alice");
+        assertEquals("ॐ\0\0\0\0T\0\0a1Ea1a2Sa2a3Ta3a4۝\0\0\0\1",
+                weave.getWeave5c());
         weave.setNewText("TET","Bob");
+        assertEquals("ॐ\0\0\0\0T\0\0a1Ea1a2Sa2a3\ba3b1Ta3a4۝\0\0\0\1",
+                weave.getWeave5c());
         weave.setNewText("TEXT","Carol");
-        assertEquals(
-                "ॐ\0\0\0\0T\0\0a1Ea1a2Xa2c1Sa2a3\ba3b1Ta3a4۝\0\0\0\1",
-                weave.getWeave5c()
-                );
+        assertEquals("ॐ\0\0\0\0T\0\0a1Ea1a2Xa2c2Sa2a3\ba3b1Ta3a4۝\0\0\0\1\0a3c1",
+                weave.getWeave5c());
         weave.markWeft("Bob");
-        assertEquals(
-                "ॐ\0\0\0\0T\0\0a1Ea1a2Xa2c1Sa2a3\ba3b1Ta3a4۝\0\0\0\1\0a4b2\0c1b2",
-                weave.getWeave5c()
-                );
-}
+        assertEquals("ॐ\0\0\0\0T\0\0a1Ea1a2Xa2c2Sa2a3\ba3b1Ta3a4"+
+                "۝\0\0\0\1\0a3c1\0a4b2\0b1b2\0c2b2", // FIXME optimize
+                weave.getWeave5c());
+    }
 
 
 }
