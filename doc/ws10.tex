@@ -38,36 +38,34 @@ competing copies of the same text.
 
 \section{Rationale}
 
-Historically, the object model of the World Wide Web is a graph
-of pages connected by unidirectional links. In this context,
-the value of a link is an association between two pages, while
-evolution of a single page is out of scope and is more of an
-obstacle as it potentially breaks links.
-The Web may scale indefinitely; our perception can not. 
-Normally, we resort to a search engine ranking millions of
-pages to return those most relevant to us.
-During the last decade, we have witnessed the fundamentally
-different \emph{wiki} approach of synthesis, the most notable
-example being Wikipedia. A multitude of contributions may be
-fused into a singular document which an end user is able to consume.
-This process of knowledge fusion is inherently social and
-focuses on the evolution of a single document.
+Historically, the object model of the World Wide Web is a graph of pages connected by unidirectional links.
+In this context, the value of a link is an association between two pages.
+Evolution of a single page is more of an obstacle as it potentially breaks links; it is out of the model's scope.
+While the Web may scale indefinitely, our perception can not. 
+Normally, we resort to a search engine ranking millions of pages to return those most relevant to us.
+During the last decade, we have also witnessed the fundamentally different \emph{wiki} approach of synthesis, the most notable example being Wikipedia.
+A multitude of contributions may be fused into a singular document which an end user is able to consume.
+This process of knowledge fusion is inherently social and focuses on the evolution of a single document.
 Naturally, that process is based on revision control technologies.
 %and it should be noted that Wikipedia's version control
 %very ancient sort technology is 
-Considering the wiki-world and Wikipedia in particular, typically the employed revision control technology is as obsolete as you can possibly get, especially if compared to the recent developments in Distributed Revision Control Systems (DRCS) employed by the Linux kernel and other large-scale software development projects.
-Another relatively new development, which is real-time revision control, powers group collaboration environments, notable examples being Etherpad, Google Docs, Google Wave.
+Considering the wiki-world and Wikipedia in particular, typically the employed revision control technology is as obsolete as you can possibly get.
+That is especially clear if compared to the recent developments in Distributed Revision Control Systems (DRCS) employed by the Linux kernel and other large-scale software development projects.
+Another relatively new development, which is real-time revision control, powers group collaboration environments. Notable examples are Etherpad, Google Docs, Google Wave.
 
 Given the potential of the knowledge fusion process, the idea of adapting advanced revision control technology to the conditions of the Open Web naturally comes to mind (``Open'' both in the sense of open sea and open standard). 
-Indeed, all the advanced SCM techniques, such as branching, 3-way merging, distributed revision control, et cetera, were not introduced for the art's sake. Each technique has a purpose of overcoming a certain scalability barrier that have emerged once software projects became sufficiently big. 
-Consider Wikipedia; it is certainly big and it certainly faces a scalability barrier \cite{no-singularity, wp-decay}. In case scalability issues are resolved, we may witness something even more useful and exciting, perhaps  a Web-scale Wikipedia housing both general and specialized knowledge.
+Indeed, all the advanced source code management (SCM) techniques, such as branching, 3-way merging, distributed revision control, et cetera, were not introduced for the art's sake.
+Each technique has a purpose of overcoming a certain scalability barrier that have emerged once software projects became sufficiently big. 
+Consider Wikipedia; it is certainly big and it certainly faces a scalability barrier \cite{no-singularity, wp-decay}.
+In case scalability issues are resolved, we may witness something even more useful and exciting, perhaps  a Web-scale Wikipedia housing both general and specialized knowledge.
 Considering smaller wikis, real-time decentralized version control potentially improves usability/ accessibility/ availability~\cite{nahaboo} and enables new uses, such as federated wikis with social filtration of changes~\cite{www06}, or real-time brainstorming wiki (think Etherpad backed by git~\cite{git}) or simply offline/disconnected use of wikis.
 
 To give an introduction to the technical part of the problem we spend Section~\ref{sec:scm} to review the technological foundations of revision control. As it was said, Wikipedia's technology is lagging 20 to 30 years behind the state of the art in the source code management field. 
-In Section~\ref{sec:textile}, we proceed to the focal topic of this paper which is the adaptation of advanced version control technologies for Open-Web hypertext versioning. As a result, we come up with a vision of \emph{deep} hypertext carrying its history, authorship attribution and internal dependencies.
+In Section~\ref{sec:textile}, we proceed to the focal topic of this paper which is the adaptation of advanced revision control technologies for Open-Web hypertext versioning. As a result, we come up with a vision of \emph{deep} hypertext carrying its history, authorship attribution and internal dependencies.
 The section outlines a simple hypertext storage format with embedded revision control.
 Then, in Section \ref{sec:algos}, the concept is proven to be practical by implementing both basic and advanced revision control operations, mostly relying on Perl-compatible regular expressions, which are readily available not only in numerous programming languages, but even in the constrained environment of a Web browser, thanks to JavaScript.
-Next, Section~\ref{sec:estim} physical/practical limitations are considered to ensure feasibility of the format and algorithms. The format is applied to hierarchically structured texts.
+Next, Section~\ref{sec:estim} physical/practical limitations are considered to ensure feasibility of the format and algorithms.
+The format is applied to hierarchically structured texts.
 Section \ref{sec:reflections} hints at some promising implications and consequences of the introduced technology.
 Section~\ref{sec:conclusion} concludes.
 
@@ -76,6 +74,7 @@ Section~\ref{sec:conclusion} concludes.
 \section{Revision control} \label{sec:scm}
 
 Just to give some introduction, I will first outline principles and inner workings of revision control technologies.
+%\subsection{Storage}
 The most basic decision and tradeoff of a revision control system is the versioned data storage format.
 The simplest form of storage format is \emph{snapshots}: every single  version is kept in the storage.
 The simplistic approach has a serious shortcoming: the space consumed by the storage tends to grow as $O(N^2)$, where $N$ is the size of the file.
@@ -83,38 +82,51 @@ That is caused by the fact that every small change causes the entire file being 
 In particular, English Wikipedia (enwiki) clearly faced that problem; their last successful full-history dump was made on January 2008.
 Smaller pedias are still doing quite well; apparently their $O(N^2)$ is not out of bounds yet.
 As an extreme example, snapshot storage is totally unacceptable for real-time version control, where changes are introduced symbol by symbol, so the $O(N^2)$ would be quite close to exactly $N^2$ of storage ($10^{6}$ for 1KB of text, $10^{8}$ for 10KB etc).
-
 An improvement over snapshots is \emph{delta}-based storage.
 Delta storage keeps just some versions of a file as snapshots, the rest being stored as a sequence of deltas.
 To recover a historical version, a number of deltas should be applied to a snapshot.
-So far, this method is the most popular among revision control systems.
-The git, for example, formally employs snapshot storage, but older revisions are delta-compressed for storage efficiency. 
-
+So far, this method is the most popular among RCSes.
+The git, for example, nominally employs snapshot storage, but older revisions are delta-compressed for storage efficiency. 
 The third classic storage format is the  \emph{weave}~\cite{rcs-txt,revctrl-weave}. 
 A weave contains all the pieces of a text that ever existed, in their natural order, annotated with their birth and death ``dates''.
 Given a certain revision id, a weave may be scanned and all pieces alive at that point in time will form the corresponding version of the text.
-Weave is traditionally considered complex to implement; as a file format, it also suffers of high input-output overhead~\cite{bazaar-weave} as the entire weave has to be overwritten on every change.
+Weave is considered complex to implement; as a file format, it also suffers of high input-output overhead~\cite{bazaar-weave} as the entire weave has to be overwritten on every change.
 As a consequence, it is not widely used as a storage format.
 %An attempt to adapt the classic weave format for non-linear history seemingly makes it even more complex.
 Still, it is often used as an interim data structure by algorithms merging concurrently introduced changes.
 
-Meanwhile, mass migration to non-linear development and distributed revision control systems is the most notable trend of past years.
+%\subsection{Evolution}
+The storage is closely connected to the evolution model a RCS implements.
+The simplest model is a linear sequence of revisions; this is the case of Wikipedia.
+Even the most antiquated RCSes use the branching model: the history is seen as a tree, where branches are eventually forked or merged back into the trunk.
+Distributed revision control takes branching to the limit; the history is seen as a directed acyclic graph, every change is potentially a fork.
+%different peer repositories might keep different subsets of the history.
+Mass migration to non-linear development and DRCSes is the most notable trend of past years.
 Linux is developed with the git, Google Code adopted Mercurial~\cite{mercurial}, and numerous open source projects head in the same direction, migrating from legacy CVS or Subversion.
-The advantage of DRCS is the ability to routinely fork and merge back numerous semi-independent versions of a project.
+The advantage of DRCS is the ability to routinely and continuously fork and merge back numerous semi-independent versions of a project.
 Technically, DRCS sees every repository as an independent peer, keeping the entire project's history. The symmetric architecture minimizes client-server roundtrips, has no single point of failure or contention.
 On the social side, it facilitates decentralization as well.
 Fundamentally, it allows for better scalability of software development: more people doing more things at once, without causing chaos.
 
-Another promising trend is the emergence of real-time revision control systems, mostly used in groupware.
-An earlier example, the Google Docs, recycled the classic revision control techniques~\cite{diff-match-patch}, such as patches~\cite{patch} and Meyer's diff~\cite{meyers-diff}.
-It just invoked those operations more often, automatically.
-The recent Google's project Wave adopted true real-time approach derived from the previous academic work on Operational Transformation (OT).
+%\subsection{Changes}
+Last but not least cornerstone of RCS design is the change serialization and propagation format.
+Earlier centralized RCSes (SCCS, MS SourceSafe) employed locking to ensure exclusive access to any given file.
+That made change serialization trivial: it was sufficient to mention inserted/removed parts and their positions in the text.
+But locking did not scale well, so later systems (CVS, Subversion) switched to optimistic merge of non-conflicting concurrent changes.
+For the cases of no RCS, there was a practice of changesets maintained and distributed as patches \cite{stdpatch}, in parallel with the ``upstream'' codebase.
+These practices boosted the use of revision control for communication, in addition to archival. 
+In presence of concurrent changes, the problem of change serialization became less trivial.
+The classic \verb+patch+ utility employs a set of heuristics and combinatorial algorithms to apply changes properly; position numbers are always considered as approximate~\cite{patch,fraser}, every change is shipped with its \emph{context}, i.e. chunks of unchanged text before and after the changed area.
+%New methods in change serialization were necessitated by the emergence of real-time revision control systems, mostly used in groupware.
+Emergence of real-time groupware demanded new methods of change serialization.
+An earlier example, the Google Docs, recycled the classic revision control techniques~\cite{diff-match-patch}, such as patches~\cite{patch} and Meyer's diff~\cite{meyers-diff}; it just invoked those operations more often, automatically.
+The recent Google's project Wave adopted true real-time approach derived from the previous academic work~\cite{jupiter} on Operational Transformation (OT).
+
 OT starts at the same positions as the classical revision control techniques: a text is a chain of atoms, any changes are represented as insert or remove \emph{operations} at certain \emph{positions} in the
 text.
 The problem is, once editing is done concurrently, those operations cannot be integrated easily.
 The position numbering depends on previous changes and once some previous changes are concurrent and thus unknown, position numbers become inconsistent.
-The classic diff-match-patch approach employs a set of heuristics and combinatorial algorithms to apply changes properly; position numbers are always considered as approximate~\cite{fraser}, every change is shipped with its \emph{context}, i.e. chunks of unchanged text before and after the changed area.
-The OT approach instead applies \emph{transformations} to the mutation operations to amend the position numbers and to integrate concurrent changes consistently. The OT theory~\cite{sun-achieving} mentions three basic consistency requirements, also known as the CCI model: 
+The OT approach applies \emph{transformations} to the mutation operations to amend the position numbers and to integrate concurrent changes consistently. The OT theory~\cite{sun-achieving} mentions three basic consistency requirements, also known as the CCI model: 
 \begin{itemize}
 \item causally dependent operations are always executed in their cause-effect order (causality preservation)
 \item all sites converge to the same state of text once they execute the same set of operations, independently of their order of arrival, which may vary due to concurrency (convergence)
@@ -123,7 +135,7 @@ The OT approach instead applies \emph{transformations} to the mutation operation
 The only problem of OT theory is, informally, its legendary complexity, approaching that of the string theory.
 Very similarly, there are numerous classes of OT flavors~\cite{ot}.
 The source of OT complexity is the entangled web of interdependencies between operations, especially those concurrently introduced.
-Several OT models were later found to be inconsistent; e.g. see \cite{woot} for an observation of the TP2 puzzle story.
+Several OT models were later found to be inconsistent; e.g. see \cite{woot,molli-proving} for an observation of the TP2 puzzle story.
 The relatively recent SDT flavor is believed to be consistent even in peer-to-peer environments; in~\cite{lili-preserving} authors reference ``a 12-page formal correctness proof'' of the fact; the detailed description of SDT is 59 pages~\cite{lili-ensuring}.
 Indeed, once we allow non-realtime/offline functioning, lots of concurrency and absence of any central coordinating entity, the combinatorics of OT becomes extremely poor (see Sec.~\ref{sec:ot}).
 Many OT flavors resort to a single central authority to merge concurrent changes in a single consistent way; the most notable example is Google Wave's OT.
@@ -185,7 +197,7 @@ requirement.
 Fourth, versioned data formats tend to be quite complex.
 We will use only string-based formats, composed of equal-width fields; those are effectively arrays.
 Both strings and regular expressions belong to the standard toolkit of any high-level language (except probably Erlang); they are highly-optimized and work at nearly-native speeds at worst.
-In some browsers~\cite{wrec}, regexes are directly compiled into machine code.
+In some browsers~\cite{wrec,irregex}, regexes are directly compiled into machine code.
 
 \subsection{Data structures}
 
@@ -255,7 +267,7 @@ Another special atom \zero ~does nothing but signal awareness, i.e. that the aut
 
 The third basic data structure we use is the aforementioned \emph{weave}, normally {\tt weave5c}, which consists of all the symbols that ever existed, in order. 
 Past or present revisions of a text are derived from its weave given a weft (see Fig.~\ref{fig:ds}).
-All special symbols are included into the weave, but they are never shown in the resulting text, hence they cannot cause any atoms, with two exceptions: (1) \aum ~causes atoms that are inserted in the beginning of the text and (2) \zero could be caused by anything.
+All special symbols are included into the weave, but they are never shown in the resulting text, hence they cannot cause any atoms, with two exceptions: (1) \aum ~causes atoms that are inserted in the beginning of the text and (2) \zero ~could be caused by anything.
 All modifications and transformations of a weave are done by regular expressions, while those regular expressions are often produced by other regular expressions.
 The intricate dynamics of the process is considered in greater detail in the Section~\ref{sec:algos}.
 
@@ -578,99 +590,67 @@ In either case, this alternative seems more practical than distributed real-time
 
 \section{Parallels and reflections} \label{sec:reflections}
 
-Throughout the paper, our model was compared to the classic
-diff/patch/snapshot revision control paradigm. 
-...
-reuses
-combines atom ids and vector clocks in a practical regex-processible form and  carefully ... awareness order
-...
-It certainly makes
-sense to put it in a broader context to uncover diverse
-similarities and dependencies.
+The model, data formats and algorithms are fully described, so now we may compare them to the relevant work in the field.
+Not to limit ourselves to feature-by-feature comparison, I will put the CT model into a broader context to uncover similarities and dependencies that have a chance of being insiteful.
 
 \subsection{Operational Transformation} \label{sec:ot}
 
-First of all, the causal model fulfills three requirements of OT.
-Causality preservation holds
-by design, as an atom is never introduced to the weave before all
-any of the atoms it is aware of.
-Convergence is insured as the order of atoms in a weave does
-not depend on the order of arrival. Intention
-preservation, in the sense of applying changes to a wrong position
-in the text, is trivially solved: the logic is not positional.
-In general, introducing unique atom identifiers and putting
-atoms orderly into a tree removed all the arcane complexity
-of position-dependent operations and transformations.
+First of all, the causal model fulfills three requirements of the OT CCI correctness model (see Sec.~\ref{sec:siblord} for one-paragraph proof).
+%Causality preservation holds by design, as an atom is never introduced to the weave before all any of the atoms it is aware of.
+%Convergence is insured as the order of atoms in a weave does not depend on the order of arrival.
+%Intention preservation, in the sense of applying changes to a wrong position in the text, is trivially solved: the logic is not positional.
+Compared to the mainstream OT, the introduction of unique atom identifiers and putting atoms orderly into a tree removed all the arcane complexity of position-dependent operations and transformations.
+That complexity was mostly caused by the relativistic nature of distributed systems, where the perceived time and order of events varies for different observers.
+Using relativistic analogies, the CT construct resembles the light cone / Minkowski spacetime approach in understanding order and causality of events.
+Instead of reshuffling basic events happening at given times at given points in space, as perceived by different observers, CT model considers the entire \emph{static} geometric shape in spacetime.
+As a consequence, quite differently from operational transformation schemes, causal trees absolutely lack the transformation aspect: atomic operations stay intact and interact in simple predictable ways.
 
-Differently from operational transformation schemes, causal trees
-absolutely lack the transformation aspect: atomic operations
-stay intact and interact in simple predictable ways. That brings
-it closer to the WOOT~\cite{woot} transformationless OT scheme
-that also abandons positional logic in favor of unique atom
-identification. While WOOT records both neighbors of a newly
-introduced atom, CT records just one (the ``cause''). 
-In some situations, indeed, CT has to mention the second
-neighbor using the \zero ~atom, but that is an exception.
-WOOT avoided using vector clocks, based on the assumption that
-the size of a vector is proportional to the total number of
-participants. But in the scope of a single page or a
-section the number of editors is manageable; vector clocks
-(wefts) also turn to be quite handy as revision identifiers.
-As well, CT has some similarities to another post-OT system
-Logoot~\cite{logoot}. Logoot's list-identifiers can be compared
-to concatenations of CT ids along the path from the root to 
-the atom. In CT, this structure is used implicitly.
-Logoot's arguments against thombstones are much less relevant
-for symbol-based revision control (as opposed to line-based).
+\subsection{Post-OT schemes}
+The reliance on atom ids makes CT similar to the WOOT~\cite{woot} transformationless OT scheme that also abandons positional logic in favor of unique atom identification.
+While WOOT records both left and right neighbors of a newly introduced atom, CT records just one (the ``cause''). 
+In some situations, indeed, CT has to mention the second neighbor using the \zero ~atom, but that is an exception.
+WOOT avoided using vector clocks, based on the assumption that the size of a vector is proportional to the total number of participants.
+But in the scope of a single page or a section the number of editors is manageable; vector clocks (wefts) also turn to be quite handy as revision identifiers.
+As well, CT has some similarities to another post-OT system Logoot~\cite{logoot}.
+Logoot's list-identifiers can be compared to concatenations of CT ids along the path from the root to the atom.
+In CT, this structure is used implicitly.
+Logoot takes some measures to avoid accumulation of tombstones (i.e. deleted historical content). That is mostly caused by its reliance on line-based granularity of change tracking, which exaggerates the overhead of history-keeping, in case small changes are prevalent.
+Tombstone-avoidance is much less relevant for symbol-based revision control.
+CT follows the DRCS principle of each repository being an independent peer hosting the entire known history.
+In this discourse, Logoot's history-elimination is unacceptable. \\
+Regex-based implementation is an absolutely unique feature of CT, not ever attempted in OT or post-OT or any other kind of revision control framework.
 
 \subsection{Fidge-Lamport vector clocks} \label{sec:lamport}
 
-The causal tree model perfectly matches entities of the
-Lamport - Fidge~\cite{lamport,fidge} vector/logical clocks model.
-Namely, yarn
-corresponds to a process, foreign causality relations - to
-messages, yarn offsets to local logical clocks and wefts to
-vector clocks. 
-Awareness order follows the lines of Lamport's synchronized
-logical timestamps. The weft order is similar to Fidge's vector
-clock ordering, but there are no strict equivalence here.
+The causal tree model perfectly matches entities of the Lamport - Fidge~\cite{lamport,fidge} vector/logical clocks model.
+Namely, yarn corresponds to a process, foreign causality relations - to messages, yarn offsets to local logical clocks and wefts to vector clocks. 
+Awareness order follows the lines of Lamport's synchronized logical timestamps.
+The weft order is similar to Fidge's vector clock ordering, but there are no strict equivalence here.
+Interestingly, the Fidge-Lamport model was inspired by the special theory of relativity.
 
 \subsection{Xanadu}
 
-There are some parallels between causal trees and the historical
-Xanadu hypertext model. The spirit of Xanadu is to keep all the
-versions of all texts at the same time, by clearly separating the
-original input from the actual revisions of the text. Very similar 
-approach is seen in causal trees: primary input is put into yarns
-while all the actual revisions are subsequences of the weave.
-The implementation method is different.
+There are some parallels between causal trees and the historical Xanadu hypertext model.
+The spirit of Xanadu is to keep all the versions of all texts at the same time, by clearly separating the original input from the actual revisions of the text~\cite{xanacarpet}.
+Very similar  approach is seen in causal trees: primary input is put into yarns while all the actual revisions are subsequences of the weave.
+The Xanadu objectives of ``origin connection'', ``side-side intercomparison'', ``deep version management'' and ``incremental publishing'' are addressed in CT.
+The implementation method employed by CT is very different.
 
-\subsection{Wikipedia}
+\subsection{Distributed wikis}
 
-Currently, Wikipedia faces scaling problems~\cite{no-singularity,wp-decay};
-nature of those problems is quite complicated and cannot be fully
-covered in this article. Some research effort was put into
-engineering Wikipedia decentralization based on Distributed
-Hash Tables (DHTs, ~\cite{urdaneta}). That is merely a
-technical decentralization that addresses possible funding
-shortages. Another side of the problem is social decentralization.
-How to prevent turf wars and contributor alienation? Is it
-possible to create multiple competing pedias? How could we
-possible test novel forms of contributor organization and
-incentivization? Will the inclusionist approach work, i.e.
-could we use Wikipedia for specialized knowledge?
+The first distributed wiki proposal was made by the original inventor of wikis Ward Cunningham~\cite{folk-memory}.
+Numerous peer-to-peer/distributed/federated wiki proposals and prototypes were made since \cite{www06,buraga,distriwiki,concerto}, but none crossed the critical robustness/usability threshold to reach any notable acceptance. Probably, a simpler distributed revision control technology will make some advance here.
 
-My honest belief is that decent decentralized revision control
-is absolutely necessary just to start thinking about those
-questions. Eventually, decentralized version control with
-easy forking and easy merge of branches may lead towards the
-vision that Linus Torvalds has explained as ``crosspollination
-and natural selection''~\cite{linus-pollinates}
-in application to the Linux development;
-currently, those ideas are manifested in the design of the git RCS.
-Unfortunately, the git is not Web-ready. It is precisely fit
-for its current purpose and it was never intended to be run
-in a browser or to be simple enough, etc.
+Currently, Wikipedia faces scaling problems~\cite{wp-decay,no-singularity}; nature of those problems is quite complicated and cannot be addressed in this article.
+Some research effort was put into engineering Wikipedia decentralization based on Distributed Hash Tables (DHTs, ~\cite{urdaneta}).
+That is merely a technical decentralization that addresses possible funding shortages.
+Another side of the problem is social decentralization.
+How to prevent turf wars and contributor alienation?
+Is it possible to create multiple competing pedias?
+How could we possible test novel forms of contributor organization and incentivization?
+Will the inclusionist approach work, i.e. could we use Wikipedia for specialized knowledge?
+My honest belief is that decent distributed revision control technology is absolutely necessary just to start thinking about those questions.
+
 
 \subsection{Google Wave}  \label{sec:waveot}
 
@@ -695,10 +675,11 @@ a filtre to a weave in the CT model.
 
 \subsection{Source Code Management}
 
-empower the user ...
-The ability to express branches (in the RCS sense, i.e. parallel text versions) as bunches of causal branches (i.e. subtrees) opens some new interesting possibilities.
-For example, Linux developers are familiar with ``patch sets'' -- changes to the kernel that are maintained in parallel. Similarly, it is possible to maintain ``transparent overlays'' over the text, i.e. sets of changes that may be switched on or off. These ``overlay'' changes might be stored as yarns or tails of yarns, referencing the core of ``universally accepted'' yarns one-way.
-...
+Eventually, decentralized version control with easy forking and easy merge of branches may lead towards the vision that Linus Torvalds has explained as ``crosspollination and natural selection''~\cite{linus-pollinates} in application to the Linux development.
+Currently, those ideas are manifested in the design of the git RCS.
+Unfortunately, the git is not Web-ready.
+It is precisely fit for its current purpose and it was never intended to be run in a browser or to be simple enough, etc.
+Empowering the regular user with the advanced collaboration and revision control toolset, such as difference comparison, patch filtering, branches and patch sets, might be a worthy objective.
 
 \section {Conclusion} \label{sec:conclusion}
 
