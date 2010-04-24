@@ -2,10 +2,20 @@
 \usepackage{fontspec}
 \usepackage{xunicode}
 \usepackage{amsmath}
+%\usepackage{amsthm}
 \usepackage{graphicx}
 \date{}
+%\newtheoremstyle{dense}{10pt}{40pt}
+%\theoremstyle{dense}
+%\theoremstyle{remark}
 \newtheorem{lemma}{Lemma}
-
+\newcommand{\tighten}{\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}\setlength{\parsep}{0pt}}
+\newenvironment{tightitem}{
+\begin{itemize}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}}{\end{itemize}
+}
 
 \begin{document}
 
@@ -127,11 +137,11 @@ text.
 The problem is, once editing is done concurrently, those operations cannot be integrated easily.
 The position numbering depends on previous changes and once some previous changes are concurrent and thus unknown, position numbers become inconsistent.
 The OT approach applies \emph{transformations} to the mutation operations to amend the position numbers and to integrate concurrent changes consistently. The OT theory~\cite{sun-achieving} mentions three basic consistency requirements, also known as the CCI model: 
-\begin{itemize}
+\begin{tightitem}
 \item causally dependent operations are always executed in their cause-effect order (causality preservation)
 \item all sites converge to the same state of text once they execute the same set of operations, independently of their order of arrival, which may vary due to concurrency (convergence)
 \item the effect of executing an operation is always the originally intended effect; position shifts must not cause misapplication of operations (intention preservation)
-\end{itemize}
+\end{tightitem}
 The only problem of OT theory is, informally, its legendary complexity, approaching that of the string theory.
 Very similarly, there are numerous classes of OT flavors~\cite{ot}.
 The source of OT complexity is the entangled web of interdependencies between operations, especially those concurrently introduced.
@@ -208,7 +218,7 @@ In some browsers \cite{wrec,irregex}, regexes are directly compiled into machine
 \newcommand{\cnc}{{\fontspec{Apple Symbols} ⌦}}
 \newcommand{\zero}{{\fontspec{Apple Symbols} ⌀}}
 
-Our basic data structure will be a \emph{yarn}, a sequence of symbols introduced to a single page by a single author.
+Our basic data structure will be a \emph{yarn}\footnote{In this discipline, many classic terms, such as patch, weave or string, have textile connotations. Thus, I introduce terms ``yarn'' and ``weft'' in accordance with the tradition. A confused reader may substitute that for ``user's contributed symbols vector'' and ``Fidgean vector timestamp'' resp.}, a sequence of symbols introduced to a single page by a single author.
 A yarn is identified by its URL.
 Every symbol in a yarn is identified with its offset, but instead of numbers we will use single Unicode chars (code points).
 A yarn may reference other yarns, in case the page was co-authored by other authors besides the observer.
@@ -224,39 +234,42 @@ This adds three other forms: 5-form (the symbol, its own id, its causing id), 3c
 Further on, all data structure names will be postfixed with the the form they use, e.g. {\tt yarn3c} or {\tt atom5c}, see Fig.~\ref{fig:forms}.
 
 \begin{figure}[t]
-\includegraphics[width=0.48\textwidth]{feedsnweaves.pdf}
+\includegraphics[width=0.49\textwidth]{feedsnweaves-5.pdf}
 \caption{Yarns, wefts and weaves: Alice writes ``Test'', Bob corrects to ``Text'', Alice saves the state. \label{fig:ds} }
-~\\
+
 \resizebox{0.48\textwidth}{!}{
-\begin{tabular}{|c|c|c|l|}
+\begin{tabular}{|c|c|c|c|l|}
 \hline
-{\tt weft2} & {\tt weave1} & {\tt text1} & comment\\
+{\tt weft2} & {\tt weftI} & {\tt weave1} & {\tt text1} & comment\\
 \hline
-a4 & \aum Test{\eoa} & Test & Alice typed in ``Test'' \\
-a4b2 & {\aum}Texs{\bsp}t{\eoa} & Text & Bob: ``Test''$\to$``Text'' \\
-a5b2 & {\aum}Tex{\zero}s{\bsp}t{\eoa} & Text & Alice: save \\
+a4 & 4 &\aum Test{\eoa} & Test & Alice typed in ``Test'' \\
+a4b2 & 42 &{\aum}Texs{\bsp}t{\eoa} & Text & Bob: ``Test''$\to$``Text'' \\
+a5b2 & 52 &{\aum}Tex{\zero}s{\bsp}t{\eoa} & Text & Alice: save (see Fig.~\ref{fig:w5c})\\
 \hline
 \end{tabular}
 }
 \caption{Weft-weave-text correspondence for Fig.~\ref{fig:ds} \label{fig:wwt}}
+
 \resizebox{0.48\textwidth}{!}{
-\begin{tabular}{|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|c|}
 \hline
-form & {\tt atom1} & {\tt atom3} & {\tt atom3c} & {\tt atom5} & {\tt atom5c} \\
+form & {\tt atom1} & {\tt atom2} & {\tt atom3} & {\tt atom3c} & {\tt atom5} & {\tt atom5c} \\
 \hline
-value & x & xb2 & xa2 & xb2a2 & xa2b2 \\
+value & x & b2 & xb2 & xa2 & xb2a2 & xa2b2 \\
 \hline
 \end{tabular}
 }
-\caption {The ``x'' atom of Fig.~\ref{fig:ds} in different forms. \label{fig:forms}}
+\caption {Different forms for the ``x'' atom of Fig.~\ref{fig:ds}; b2 is the atom's id (feed b, offset 2), a2 is the id of the causing atom (the ``e''). \label{fig:forms}}
+~\\
+{ {\aum}0101{T}01a1{e}a1a2{\underline{xa2b2}}{\zero}b2a5{s}a2a3{\bsp}a3b1{t}a3a4{\eoa}0102 }
+\caption{ Full {\tt weave5c} for Fig.~\ref{fig:ds} (``x'' is underlined). \label{fig:w5c} }
 \end{figure}
-
 The second basic data structure is a \emph{weft}, which is effectively a revision's identifier.
 A {\tt weft2} consists of (yarn id; last symbol id) pairs, and points at the revision when those yarns were that long. 
 In some sense, a weft is drawn across the yarns, hence the name.
 A \emph{closed} weft is a weft unchanged by transitive closure, i.e. inclusion of all the recursive dependencies caused by yarn-to-yarn references.
-The {\tt weft1} format is more condensed: it only includes last symbol ids, sorted according to the alphanumeric ordering of their yarn URLs.
-%As the yarn list may extend over time (new authors join), the particular subset of mentioned yarns is defined by the length of {\tt weft1}.
+The {\tt weftI} format is more condensed: it only includes last symbol ids, sorted according to the alphanumeric ordering of their yarn URLs.
+%As the yarn list may extend over time (new authors join), the particular subset of mentioned yarns is defined by the length of {\tt weftI}.
 Wefts are essentially vector clocks, see Sec.~\ref{sec:lamport}.
 
 The causality relation forms a tree of atoms (see Fig.~\ref{fig:ds}).
@@ -279,9 +292,9 @@ The intricate dynamics of the process is considered in greater detail in the Sec
 
 \subsection {Ordering of siblings}  \label{sec:siblord}
 
-Causality creates a partial order, so it cannot directly order atoms totally into a text.
+Causality creates a partial order, so it cannot order atoms totally into a text.
 Namely, it omits ordering of siblings; in case two symbols were inserted after the same parent symbol, their causal order is undefined.
-For example, the first symbol of a text is a child to \aum ~and a sibling to \eoa.
+For example, the ``T'' at Fig.~\ref{fig:ds} is a child to \aum ~and a sibling to \eoa, but the order has to be ``\aum T\ldots\eoa'', not ``\aum \eoa T\ldots''.
 Let's define a specialization of the causal ordering to resolve the issue.
 
 An atom $a$ is \emph{aware} of atom $b$ if $a$ is caused by $b$ or $a$ appears later in the same yarn as $b$ or there is a chain of those two relations connecting $a$ to $b$ through some intermediary atoms.
@@ -297,15 +310,15 @@ Then, the author (effectively, the program) is supposed to first insert \zero ~a
 
 The resulting ordering is still partial, as the authors may be unaware of each other doing concurrent changes, so the awareness relation still might be undefined for some siblings.
 Thus, we finally introduce the total order which, be it introduced earlier, might have caused confusion.
-The \emph{weft order} assumes that all atoms are ordered in accordance with depth-first preorder traversal of the causal tree, while siblings are traversed in the descending  alphanumeric order of their awareness {\tt weft1}.
-This is a specialization of the awareness order, because awareness is transitive and, correspondingly, if $a$ is aware of $b$, then $\tt weft1(a) > weft1(b)$.
+The \emph{weft order} assumes that all atoms are ordered in accordance with depth-first preorder traversal of the causal tree, while siblings are traversed in the descending  alphanumeric order of their awareness {\tt weftI}.
+This is a specialization of the awareness order, because awareness is transitive and, correspondingly, if $a$ is aware of $b$, then $\tt weftI(a) > weftI(b)$.
 The inequality is strict because two symbols cannot be aware of each other (circular dependency), so their wefts surely differ.
 
-While weft lengths may grow with the time as more authors join, the relative alphanumeric order of two {\tt weft1}s never flips.
-Assuming that we compared those two wefts at a moment when their lengths were $l$, then arrival of additional $k$ coauthors will extend those wefts to the length of $l+k$ symbols.
+While weft lengths may grow with the time as more authors join, the relative alphanumeric order of two {\tt weftI}s never flips.
+If we compared those two wefts at a moment when their lengths were $l$, then arrival of additional $k$ coauthors will extend those wefts to the length of $l+k$ chars.
 Still, the extension is done by inserting zero symbols at exactly the same positions, corresponding to the positions of URLs of the newcomer authors in an alphabetically sorted list of yarn URLs.
 In both wefts, all the newcomer's positions have equal zero values, so they do not affect the ordering.
-Relativistic effects are prevented by the fact that awareness weft does not depend on the observer.
+Relativistic effects are prevented by the fact that awareness {\tt weftI} does not depend on the observer.
 Hence, the awareness weft order is same for all observers and never flips.
 
 Any changes to the text are expressed as new branches  of the causal tree; any concurrent changes (i.e. branches) are unambiguously merged and the resulting text is defined by the causal/awareness/weft order.
@@ -330,11 +343,11 @@ Note that a causal subtree occupies a solid interval in the weave; that is just 
 Let's call it a causal block.
 A causal block starts with the root atom of the subtree; the rest is a sequence of zero or more causal blocks of the root's children.
 The question is: how will we locate the end of a causal block?
-\begin{lemma} A causal block rooted at $r \ne$ \aum ~lasts till
+\begin{lemma}\tighten A causal block rooted at $r \ne$ \aum ~lasts till
 the first atom $b$, whose parent is not $r$ but an atom
 $r$ is aware of (exclusively):  $cblock(r) = [r,b)$. \label{lemma:1}
 \end{lemma} 
-\begin{proof}
+\begin{proof}\tighten
 $b$ is the first element to the right from the causal
 block of $r$; $b$ surely exists. Parent of $b$ is an atom $p$,
 which resides in the weave somewhere to the left from $b$.
@@ -363,7 +376,7 @@ For easier narration, this section will describe a typical workflow loosely base
 
 \begin{figure}[t] \label{fig:ops}
 \includegraphics[width=0.48\textwidth]{operations.pdf}
-\caption{Causal model formats, operations and dependencies.} \label{fig:ops}
+\caption{Causal model formats and operations.} \label{fig:ops}
 \end{figure}
 
 \subsection{Editing (the main loop)}
@@ -374,7 +387,7 @@ A weave might be transformed into {\tt text3} by \emph{scouring}: clearing weave
 Out of the atom's 5c-form, only the symbol and its id are taken, thus the output is a 3-form.
 This regex is simplified: it ignores undeletions (see Sec.~\ref{sec:undo}).
 That is necessary for the ease of understanding, as PCRE is an étalon of ``write-only language''. 
-The resulting {\tt text3} might be trivially \emph{stringified} into {\tt text1}, i.e. the text itself: {\small \verb`s/(.)../$1/g`}.
+The resulting {\tt text3} might be trivially \emph{stringified} into {\tt text1}, i.e. the text itself: {\small \verb+s/(.)../$1/g+}.
 
 The text is then put into the editor; a user makes some changes.
 Those changes might be tracked either by listening to  basic events or by comparing text snapshots using diff and/or heuristics.
@@ -401,7 +414,7 @@ In the case of patching, we produce a {\tt filtre} out of the head symbol's awar
 
 Well, what if unaware siblings are introduced by other users, so the first method of patching fails?
 This is exactly the situation to apply Lemma~\ref{lemma:1}. 
-We single out the causal block of the heads's causing symbol, then we split it into causal blocks of the head's siblings, then we insert our block between its sibling causal blocks, according to the {\tt weft1} ordering (see Sec.~\ref{sec:siblord}).
+We single out the causal block of the heads's causing symbol, then we split it into causal blocks of the head's siblings, then we insert our block between its sibling causal blocks, according to the {\tt weftI} ordering (see Sec.~\ref{sec:siblord}).
 The implementation of this case is less straightforward.
 While still relying on regular expressions, it involves some ``manual'' work and, most importantly, the costly operation of \emph{pulling} (awareness weft derivation), which does several passes of the weave (see Sec.~\ref{sec:pulling}).
 The assumption is that concurrent insertion of symbols at the same position in the text is a rare event, so this non-trivial machinery will be invoked ``once a year''.
