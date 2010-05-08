@@ -19,6 +19,10 @@
 
 \begin{document}
 
+\conferenceinfo{WikiSym}{'10, July 7-9, 2010, Gdansk, Poland}
+\CopyrightYear{2010}
+\crdata{978-1-4503-0056-8/10/07}
+
 \title{Deep Hypertext with Embedded Revision Control Implemented in Regular Expressions}
 
 \author{Victor Grishchenko \\ \small Delft University of Technology, Ural State University \\ {\tt victor.grishchenko@gmail.com} }
@@ -41,39 +45,45 @@ concept from inter-document associations to intra-document
 dependencies and evolution. As the most promising consequence,
 it allows distributed and real-time revision control in the Open
 Web, i.e. co-evolution and mutation exchange among multiple
-competing copies of the same text. 
+competing versions of the same text. 
 
 \end{abstract}
 
 \category{I.7.1}{Document and text processing}{Document and Text Editing}[Version control]
-\category{H.5.4}{Information interfaces and presentation}{Hypertext/Hypermedia}[Architectures]
+\category{H.5}{Information interfaces and presentation}{Hypertext/Hypermedia}
 
 \section{Rationale}
 
 Historically, the object model of the World Wide Web is a graph of pages connected by unidirectional links.
 In this context, the value of a link is an association between two pages.
-Evolution of a single page is more of an obstacle as it potentially breaks links; it is out of the model's scope.
-While the Web may scale indefinitely, our perception can not. 
-Normally, we resort to a search engine ranking millions of pages to return those most relevant to us.
+Evolution of a single page is an obstacle as it potentially breaks links; it is out of the model’s scope.
+While a web of pages may scale indefinitely, our perception can not. 
+Normally, we resort to a search engine ranking millions of pages to cherry-pick those most relevant to us.
 %During the last decade, we have also witnessed the fundamentally different
-One alternative is the \emph{wiki} approach of fusing a multitude of contributions  into a singular document which an end user is able to consume.
-The most notable example is Wikipedia.
-This process of knowledge fusion is inherently social and focuses on the evolution of a single document.
-Naturally, that process is based on revision control technologies.
-%and it should be noted that Wikipedia's version control
-%very ancient sort technology is 
+There also exists an alternative approach of fusing a multitude of contributions into a singular document which an end user is able to consume.
+Thus, the user's perception is effectively scaled up.
+The most notable example of the approach is the Wikipedia and wikis in general.
+That process of knowledge fusion is inherently social and focuses on the evolution of a document, exactly the process the World Wide Web omits.
+
+Ironically, document evolution was addressed in-depth in the original Xanadu hypertext model~\cite{literary}, albeit no convincing usecase was provided.
+Currently, most of advances in document evolution and revision control are made in the context of Source Code Management (SCM).
 Considering the wiki-world and Wikipedia in particular, typically the employed revision control technology is as obsolete as you can possibly get.
 That is especially clear if compared to the recent developments in Distributed Revision Control Systems (DRCS) employed by the Linux kernel and other large-scale software development projects.
-Another relatively new development, which is real-time revision control, powers group collaboration environments. Notable examples are Etherpad, Google Docs, Google Wave.
+Another relatively new development is real-time revision control, which powers group collaboration environments. Notable examples are Etherpad, Google Docs, Google Wave.
 
-Given the potential of the knowledge fusion process, the idea of adapting advanced revision control technology to the conditions of the Open Web naturally comes to mind (``Open'' both in the sense of open sea and open standard). 
-Indeed, all the advanced source code management (SCM) techniques, such as branching, 3-way merging, distributed revision control, et cetera, were not introduced for the art's sake.
-Each technique has a purpose of overcoming a certain scalability barrier that have emerged once software projects became sufficiently big. 
-Consider Wikipedia; it is certainly big and it certainly faces a scalability barrier \cite{no-singularity, wp-decay}.
-In case scalability issues are resolved, we may witness something even more useful and exciting, perhaps  a Web-scale Wikipedia housing both general and specialized knowledge.
-Considering smaller wikis, real-time decentralized version control potentially improves usability/ accessibility/ availability~\cite{nahaboo} and enables new uses, such as federated wikis with social filtration of changes~\cite{www06}, or real-time brainstorming wiki (think Etherpad backed by git~\cite{git}) or simply offline/disconnected use of wikis.
+Knowledge fusion scales our perception, but how can we scale the fusion itself?
+Consider Wikipedia; it certainly faces a scalability barrier \cite{no-singularity, wp-decay}.
+In case scalability issues are resolved, we may witness something even more useful and exciting, perhaps a Web-scale Wikipedia housing both general and specialized knowledge.
+Probably, we may borrow some practices from the SCM field.
+Indeed, all the advanced SCM techniques, such as optimistic locking, 3-way merge, branching, distributed revision control, etc, were not introduced for the art's sake.
+Each technique overcomes a certain scalability barrier that have emerged once software projects became sufficiently big.
+Consistently, SCM technology drifted to higher degrees of parallelism, decentralization and autonomy and the recent DRCS boom is just another example.
 
-To give an introduction to the technical part of the problem we spend Section~\ref{sec:scm} to review the technological foundations of revision control. As it was said, Wikipedia's technology is lagging 20 to 30 years behind the state of the art in the source code management field. 
+The objective of this work is to develop a Web-ready revision control technology which is perfectly distributed and real-time, uniting the best of both worlds.
+Apart from the promise of scalability, the technology potentially improves usability/ accessibility/ availability of wikis~\cite{nahaboo} and enables new uses, such as federated wikis with social filtration of changes~\cite{www06}, or real-time brainstorming wiki (think Etherpad backed by git~\cite{git}) or simply offline use of wikis.
+
+To give an introduction to the technical part of the problem we devote Section~\ref{sec:scm} to review the technological foundations of revision control. 
+%As it was said, Wikipedia's technology is lagging 20 to 30 years behind the state of the art in the source code management field. 
 In Section~\ref{sec:textile}, we proceed to the focal topic of this paper which is the adaptation of advanced revision control technologies for Open-Web hypertext versioning. As a result, we come up with a vision of \emph{deep} hypertext carrying its history, authorship attribution and internal dependencies.
 The section outlines a simple hypertext storage format with embedded revision control.
 Then, in Section \ref{sec:algos}, the concept is proven to be practical by implementing both basic and advanced revision control operations, mostly relying on Perl-compatible regular expressions, which are readily available not only in numerous programming languages, but even in the constrained environment of a Web browser, thanks to JavaScript.
