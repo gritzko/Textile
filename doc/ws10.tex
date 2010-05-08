@@ -1,4 +1,4 @@
-\documentclass{acm_proc_article-sp}
+\documentclass{sig-alternate}
 \usepackage{fontspec}
 \usepackage{xunicode}
 \usepackage{amsmath}
@@ -45,6 +45,8 @@ competing copies of the same text.
 
 \end{abstract}
 
+\category{I.7.1}{Document and text processing}{Document and Text Editing}[Version control]
+\category{H.5.4}{Information interfaces and presentation}{Hypertext/Hypermedia}[Architectures]
 
 \section{Rationale}
 
@@ -53,8 +55,9 @@ In this context, the value of a link is an association between two pages.
 Evolution of a single page is more of an obstacle as it potentially breaks links; it is out of the model's scope.
 While the Web may scale indefinitely, our perception can not. 
 Normally, we resort to a search engine ranking millions of pages to return those most relevant to us.
-During the last decade, we have also witnessed the fundamentally different \emph{wiki} approach of synthesis, the most notable example being Wikipedia.
-A multitude of contributions may be fused into a singular document which an end user is able to consume.
+%During the last decade, we have also witnessed the fundamentally different
+One alternative is the \emph{wiki} approach of fusing a multitude of contributions  into a singular document which an end user is able to consume.
+The most notable example is Wikipedia.
 This process of knowledge fusion is inherently social and focuses on the evolution of a single document.
 Naturally, that process is based on revision control technologies.
 %and it should be noted that Wikipedia's version control
