@@ -94,25 +94,25 @@ Section~\ref{sec:conclusion} concludes.
 
 
 
-\section{Revision control} \label{sec:scm}
+\section{Revision control basics} \label{sec:scm}
 
-Just to give some introduction, I will first outline principles and inner workings of revision control technologies.
+I will first outline principles and inner workings of revision control technologies.
 %\subsection{Storage}
 The most basic decision and tradeoff of a revision control system is the versioned data storage format.
-The simplest form of storage format is \emph{snapshots}: every single  version is kept in the storage.
-The simplistic approach has a serious shortcoming: the space consumed by the storage tends to grow as $O(N^2)$, where $N$ is the size of the file.
-That is caused by the fact that every small change causes the entire file being written all over again.
-In particular, English Wikipedia (enwiki) clearly faced that problem; their last successful full-history dump was made on January 2008.
+The simplest storage format is \emph{snapshots}: every single  version is kept in the storage.
+The simplistic approach has a serious shortcoming: the space consumed by the storage tends to grow as $O(N^2)$, where $N$ is the size of the file, assuming the file grows in small increments, which is often the case.
+The effect is caused by the fact that every small change causes the entire file being written all over again.
+In particular, English Wikipedia (enwiki) clearly faced that problem. Their last successful regular full-history dump was made on January 2008; the next successful dump was started in January 2010 and took two months to complete~\cite{own-experience}.
 Smaller pedias are still doing quite well; apparently their $O(N^2)$ is not out of bounds yet.
-As an extreme example, snapshot storage is totally unacceptable for real-time version control, where changes are introduced symbol by symbol, so the $O(N^2)$ would be quite close to exactly $N^2$ of storage ($10^{6}$ for 1KB of text, $10^{8}$ for 10KB etc).
+As an extreme example, snapshot storage is totally unacceptable for real-time version control, where changes are introduced symbol by symbol, so the $O(N^2)$ would be quite close to exactly $N^2$ of storage (1MB for 1KB of text, 100MB for 10KB etc).
 An improvement over snapshots is \emph{delta}-based storage.
 Delta storage keeps just some versions of a file as snapshots, the rest being stored as a sequence of deltas.
 To recover a historical version, a number of deltas should be applied to a snapshot.
-So far, this method is the most popular among RCSes.
+So far, this method is the most popular in the SCM field.
 The git, for example, nominally employs snapshot storage, but older revisions are delta-compressed for storage efficiency. 
 The third classic storage format is the  \emph{weave}~\cite{rcs-txt,revctrl-weave}. 
 A weave contains all the pieces of a text that ever existed, in their natural order, annotated with their birth and death ``dates''.
-Given a certain revision id, a weave may be scanned and all pieces alive at that point in time will form the corresponding version of the text.
+Given a certain revision id, a weave may be scanned, so all pieces alive at that point in time will form the corresponding version of the text.
 Weave is considered complex to implement; as a file format, it also suffers of high input-output overhead~\cite{bazaar-weave} as the entire weave has to be overwritten on every change.
 As a consequence, it is not widely used as a storage format.
 %An attempt to adapt the classic weave format for non-linear history seemingly makes it even more complex.
@@ -122,7 +122,7 @@ Still, it is often used as an interim data structure by algorithms merging concu
 The storage method is closely connected to the evolution model a RCS implements.
 The simplest model is a linear sequence of revisions; this is the case of Wikipedia.
 Even the most antiquated RCSes use the branching model: the history is seen as a tree, where branches are eventually forked or merged back into the trunk.
-Distributed revision control takes branching to the limit; the history is seen as a directed acyclic graph, every change is potentially a fork.
+Distributed revision control takes branching to the limit; the history is seen as a directed acyclic graph; every change is potentially a fork.
 %different peer repositories might keep different subsets of the history.
 Mass migration to non-linear development and DRCSes is the most notable trend of past years.
 Linux is developed with the git, Google Code adopted Mercurial~\cite{mercurial}, and numerous open source projects head in the same direction, migrating from legacy CVS or Subversion.
@@ -134,19 +134,19 @@ Fundamentally, it allows for better scalability of software development: more pe
 %\subsection{Changes}
 Last but not least cornerstone of RCS design is the change serialization and propagation format.
 Earlier centralized RCSes (SCCS, MS SourceSafe) employed locking to ensure exclusive access to any given file.
-That made change serialization trivial: it was sufficient to mention inserted/removed parts and their positions in the text.
+That made change serialization trivial: it was sufficient to mention inserted/removed parts and their \emph{positions} in the text.
 But locking did not scale well, so later systems (CVS, Subversion) switched to optimistic merge of non-conflicting concurrent changes.
-For the cases of no RCS, there was a practice of changesets maintained and distributed as patches \cite{stdpatch}, in parallel with the ``upstream'' codebase.
+For the cases of no RCS, there was a practice of changesets, maintained and distributed as patches \cite{stdpatch} in parallel with the main ``upstream'' codebase.
 These practices boosted the use of revision control for communication, in addition to archival. 
 In presence of concurrent changes, the problem of change serialization became less trivial.
-The classic \verb+patch+ utility employs a set of heuristics and combinatorial algorithms to apply changes properly; position numbers are always considered as approximate~\cite{patch,fraser}, every change is shipped with its \emph{context}, i.e. chunks of unchanged text before and after the changed area.
+The classic \verb+patch+ utility employs a set of heuristics and combinatorial algorithms to apply changes properly; positions are always considered as approximate~\cite{patch,fraser}, every change is shipped with its \emph{context}, i.e. chunks of unchanged text before and after the changed area.
 %New methods in change serialization were necessitated by the emergence of real-time revision control systems, mostly used in groupware.
 
 Emergence of real-time groupware demanded new methods of change serialization.
-An earlier example, the Google Docs, recycled the classic revision control techniques~\cite{diff-match-patch}, such as patches~\cite{patch} and Meyer's diff~\cite{meyers-diff}; it just invoked those operations more often, automatically.
-The recent Google's project Wave adopted true real-time approach derived from the previous academic work~\cite{jupiter} on Operational Transformation (OT).
-OT starts at the same positions as the classical revision control techniques: a text is a chain of atoms, any changes are represented as insert or remove \emph{operations} at certain \emph{positions} in the
-text.
+An earlier example is Google Docs, which used the classic revision control techniques~\cite{diff-match-patch}, such as patches~\cite{patch} and Meyer's diff~\cite{meyers-diff}; it just invoked those operations more often, automatically.
+The Google Wave project employed a new truly real-time approach derived from the previous academic work~\cite{jupiter} on Operational Transformation (OT).
+Apparently, Google Docs have also switched to OT recently~\cite{own-experience}.
+OT starts with the same model as the classical revision control techniques: a text is a chain of atoms, any changes are represented as insert or remove \emph{operations} at certain \emph{positions} in the text.
 The problem is, once editing is done concurrently, those operations cannot be integrated easily.
 The position numbering depends on previous changes and once some previous changes are concurrent and thus unknown, position numbers become inconsistent.
 The OT approach applies \emph{transformations} to the mutation operations to amend the position numbers and to integrate concurrent changes consistently. The OT theory~\cite{sun-achieving} mentions three basic consistency requirements, also known as the CCI model: 
@@ -158,7 +158,7 @@ The OT approach applies \emph{transformations} to the mutation operations to ame
 The only problem of OT theory is, informally, its legendary complexity, approaching that of the string theory.
 Very similarly, there are numerous classes of OT flavors~\cite{ot}.
 The source of OT complexity is the entangled web of interdependencies between operations, especially those concurrently introduced.
-Several OT models were later found to be inconsistent; e.g. see \cite{woot,molli-proving} for an observation of the TP2 puzzle story.
+Several OT models were later found to be inconsistent; e.g. see \cite{molli-proving, woot} for an observation of the TP2 puzzle story.
 The relatively recent SDT flavor is believed to be consistent even in peer-to-peer environments; in~\cite{lili-preserving} authors reference ``a 12-page formal correctness proof'' of the fact; the detailed description of SDT is 59 pages~\cite{lili-ensuring}.
 Indeed, once we allow non-realtime/offline functioning, lots of concurrency and absence of any central coordinating entity, the combinatorics of OT becomes extremely poor (see Sec.~\ref{sec:ot}).
 Many OT flavors resort to a single central authority to merge concurrent changes in a single consistent way; the most notable example is Google Wave's OT.
@@ -166,62 +166,44 @@ The inner workings of Wave OT are not known yet, the only released whitepaper~\c
 
 At this point, it makes sense to reconsider basic assumptions that shaped the classic technologies of revision control, as those assumptions seem weak in the present circumstances. 
 First of all, that atoms are necessarily addressed by their positions in a text.
-The method introduces numerous unpleasant consequences, as position numbers in a changing text are less than unreliable. 
-Historically, unique symbol/line identifiers were considered too complex or too expensive, albeit some recent proposals involve unique symbol/line identifiers~\cite{woot,logoot}.
+The method introduces numerous unpleasant consequences, as position numbers in a changing text are very unreliable. 
+Historically, unique symbol/line identifiers were considered too complex or too expensive, albeit some recent proposals involve them~\cite{woot,logoot}.
 Second classic assumption to be questioned is the separation of a revision control program from an editor program, so the former only accesses snapshots of the text made by the latter.
 The revision control program is supposed to run the longest common subsequence algorithm~\cite{lcs-algo} to recover what actually happened to the text.
 This unfortunate loss of knowledge in-between two applications is avoided by Web-based real-time editing applications, as they instantly know every keystroke made by the user.
 It is likely to be avoidable in many other cases; e.g. once revision control code is easily embeddable.
-The third assumption is the line-based tracking of changes; single symbols lack unique ``identity'' to be used as atoms.
-As well, fine-grained change control increases $N$ of atoms, and key algorithms had super-linear complexity.
-But, once we move from plain text and source code to richer formats, ``a line'' is no longer natural or convenient.
-In real time systems, a typical change is small, so line-based tracking is even less convenient.
-Google Docs, for example, works with symbol-atoms, using line-atoms as an optimization only.
-In non-real-time systems, if minor text tinkering is prevalent, line-based changes inflate overhead as well.
+The third assumption is the line-based tracking of changes. Single symbols lacked unique ``identity'' to be used as atoms. Also, finer-grained atoms increased the running time of key algorithms  that had super-linear complexity.
+%Also, classic algorithms had super-linear complexity and line-based control conveniently reduced the $N$ of atoms.
+But, once we move from plain text and source code to richer formats, ``a line'' is no longer natural nor convenient.
+If small changes are prevalent, which is the case with real-time systems, line-based tracking inflates overhead.
+The ``old'' Google Docs, for example, worked with symbol-atoms, possibly using line-atoms as an optimization.
 
 
 \section {Adaptation}   \label{sec:textile}
 
-Back to the objective of adapting advanced version control technology to the Open Web, let's consider the requirements and the corresponding problems of the current technologies. 
-Once the problems are listed, I will suggest ways of solution and outline a general technical approach to use.
+Back to the objective of adapting advanced version control technology to the Open Web, let's consider the requirements and the corresponding problems of the current technologies (Sec.~\ref{sec:req}). 
+In the same Section, I will outline the proposed solutions.
+In Sec.~\ref{sec:data}, I will introduce three basic data structures used in this work: a variant of weave, a variant of vector timestamp (weft), and a kind of operation log (yarn). Data structures are string-based, processed with regular expressions (i.e. stackless algorithms). That guarantees they are \emph{simple} in the very formal sense.
+In Sec.~\ref{sec:siblord}, I address the case of concurrent changes and prove the CCI correctness.
 
-\subsection {Problems}
-First of all, revision control is normally implemented
-in complex standalone software. Although there are JavaScript
-implementations of basic algorithms such as Fraser's
-diff-match-patch~\cite{diff-match-patch}, those are
-heavyweight heuristic-rich combinatorial
-algorithms and, frankly, better be optimized out
-completely. We will target a set of version control
-algorithms entirely implementable in 
-linear-complexity regular
-expressions without any combinatorial part.
+\subsection {Requirements} \label{sec:req}
+First of all, revision control is normally implemented in complex standalone software.
+Although there are JavaScript implementations of basic algorithms such as Fraser's diff-match-patch~\cite{diff-match-patch}, those are heavyweight heuristic-rich combinatorial algorithms and, frankly, better be optimized out completely.
+I will target a set of version control algorithms entirely implementable in linear-complexity regular expressions without any combinatorial part.
 
 Second, both to exclude position-dependent logic and to allow for truly real-time revision control, I will represent all mutations at single-symbol granularity, each symbol being uniquely identified.
 Such uniquely identified symbols are named \emph{atoms}.
 
-Third, the problem of merging concurrent changes must
-be resolved in a simple automatic way, without any user
-intervention. Definitely,
-\emph{semantically} correct merge of changes is impossible
-in principle: semantically correct concurrent
-changes, being merged cleanly in
-the technical sense, still may produce a semantically
-incorrect result and there are no way to prevent that
-from happening,
-apart from employing some sort of artificial
-intelligence. Thus, real-world RCSes focus on technically
-correct merge, resorting to human intervention in case
-some heuristics detect a dangerous situation (e.g.
-concurrent changes to the same line).
-We will focus on technically correct and predictable way
-of merging, additionally emphasizing the convergence
-requirement.
+Third, the problem of merging concurrent changes must be resolved in a simple automatic way, without any user intervention.
+Definitely, \emph{semantically} correct merge of changes is impossible in principle; semantically correct concurrent changes, being merged cleanly in the technical sense, still may produce a semantically incorrect result.
+There are no way to prevent that from happening, apart from employing some sort of artificial intelligence.
+Thus, real-world RCSes focus on technically correct merge, resorting to human intervention in case some heuristics detect a dangerous situation (e.g. concurrent changes to the same line).
+We will focus on technically correct and predictable way of merging, additionally emphasizing the convergence requirement.
 
 Fourth, versioned data formats tend to be quite complex.
-We will use string-based formats, composed of equal-width fields; those are effectively arrays.
-Strings and regular expressions belong to standard toolkit of every high-level language (except probably Erlang); they are highly-optimized and work at nearly-native speeds at worst.
-In some browsers \cite{wrec,irregex}, regexes are directly compiled into machine code.
+We will use string-based formats, composed of equal-width fields; those are effectively arrays of tuples.
+Strings and regular expressions belong to the standard toolkit of every high-level language (except probably Erlang); they are highly-optimized and work at nearly-native speeds at worst.
+In some browsers \cite{irregex,wrec}, regexes are directly compiled into machine code.
 
 \subsection{Data structures}	\label{sec:data}
 
@@ -231,14 +213,19 @@ In some browsers \cite{wrec,irregex}, regexes are directly compiled into machine
 \newcommand{\cnc}{{\fontspec{Apple Symbols} ⌦}}
 \newcommand{\zero}{{\fontspec{Apple Symbols} ⌀}}
 
-Our basic data structure will be a \emph{yarn}\footnote{In this discipline, many classic terms, such as patch, weave or string, have textile connotations. Thus, I introduce terms ``yarn'' and ``weft'' in accordance with the tradition. A confused reader may substitute that for ``user's contributed symbols vector'' and ``Fidgean vector timestamp'' resp.}, a sequence of symbols introduced to a single page by a single author.
+Our basic data structure will be a \emph{yarn}\footnote{In this discipline, many classic terms, such as patch, weave or string, have textile connotations. Thus, I introduce terms ``yarn'' and ``weft'' in accordance with the tradition. A confused reader may substitute that for ``user's contributed symbols vector'' and ``Fidgean vector timestamp'' resp.}, an append-only sequence of atoms (i.e. symbols) introduced to a single page by a single author.
 A yarn is identified by its URL.
-Every symbol in a yarn is identified with its offset, but instead of numbers we will use single Unicode chars (code points).
-A yarn may reference other yarns, in case the page was co-authored by other authors besides the observer.
-Thus there exists \emph{frame}, an append-only list of referenced peer yarn URLs; the first entry on the list is the observer's yarn URL.
-Each peer yarn is thus identified by its offset in the frame list, also represented as a single Unicode char.
-A full identifier of an atom consists of two chars: one char for its yarn, another for its offset within the yarn.
-This in turn creates different forms of atom encoding, such as 1-form (the symbol itself) or 3-form (a symbol and its full identifier).
+Every symbol-atom in a yarn is identified with its offset, denoted with a single Unicode char.
+``Our'' yarn is our reference point; other yarns belong to other authors.
+Thus our yarn has an associated reference \emph{frame}, which is an append-only list of peer yarn URLs. The first entry on the list is ``our'' yarn URL.
+Each peer yarn is thus identified by its offset in the frame list, also denoted with a single Unicode char.
+Thus, a full identifier of an atom consists of two chars: one char for its yarn, another for its offset within the yarn.
+An identifier is only effective within its frame.
+So, at this point we may use three forms of tuples to encode an atom. The simplest 1-form contains the actual character only, e.g. ``T'' in Fig.~\ref{fig:ds}. The 2-form contains its id, i.e. the yarn and the offset: ``a1''. The 3-form contains both the character and the id: ``Ta1''.
+%As I stick to string-based formats, I will use Unicode chars instead of integers to mark
+%Instead of numbers we will use single Unicode chars (code points).
+%A yarn may reference other yarns, in case the page was co-authored by other authors besides the observer.
+%This in turn creates different forms of atom encoding, such as 1-form (the symbol itself) or 3-form (a symbol and its full identifier).
 %Yarn indexes used in peer yarns are supposed to be consistent with the frame of the observer (see Sec~\ref{sec:lamport} for discussion of relativistic aspects of the model).
 
 Single symbols are linked into a text through the causality relation.
@@ -280,10 +267,11 @@ value & x & b2 & xb2 & xa2 & xb2a2 & xa2b2 \\
 The second basic data structure is a \emph{weft}, which is effectively a revision's identifier.
 A {\tt weft2} consists of (yarn id; last symbol id) pairs, and points at the revision when those yarns were that long. 
 In some sense, a weft is drawn across the yarns, hence the name.
-A \emph{closed} weft is a weft unchanged by transitive closure, i.e. inclusion of all the recursive dependencies caused by yarn-to-yarn references.
-The {\tt weftI} format is more condensed: it only includes last symbol ids, sorted according to the alphanumeric ordering of their yarn URLs.
+Wefts are essentially vector timestamps, see Sec.~\ref{sec:lamport}.
+A \emph{closed} weft is a weft subjected to transitive closure, i.e. inclusion of all the recursive dependencies caused by yarn-to-yarn references.
+The {\tt weftI} format is more condensed (see Fig.~\ref{fig:wwt}). It only includes the last symbol ids, sorted according to the alphanumeric ordering of their yarn URLs.
+{\tt weftI} is introduced because its alphanumeric ordering has certain nice features  (see Sec.~\ref{sec:siblord}).
 %As the yarn list may extend over time (new authors join), the particular subset of mentioned yarns is defined by the length of {\tt weftI}.
-Wefts are essentially vector clocks, see Sec.~\ref{sec:lamport}.
 
 The causality relation forms a tree of atoms (see Fig.~\ref{fig:ds}).
 To give that tree a simpler single-root form we define zero state of any text to consist of two special symbols: start (the root) and end, designated as \aum ~and \eoa.
@@ -294,7 +282,7 @@ A closed weft cuts a rooted subtree out of the whole tree; that subtree represen
 A causal tree grows in a very natural way, by forking and growing branches.
 To represent atom deletion in the same fork-and-grow way, deleted atoms are not removed from the tree, but followed by backspace atoms, designated as \bsp. 
 Undeletion is similarly expressed by a special atom \cnc, see Sec.~\ref{sec:undo} for in-depth discussion of deletion/undeletion.
-Another special atom \zero ~does nothing but signal awareness, i.e. that the author was aware of the causing atom.
+Another special atom \zero ~does nothing but signal awareness, i.e. that the author was aware of the causing atom. When Alice of Fig.~\ref{fig:ds} saves Bob's edits, that technically means she signals awareness of the last atom Bob introduced.
 
 The third basic data structure we use is the aforementioned \emph{weave}, normally {\tt weave5c}, which consists of all the symbols that ever existed, in order. 
 Past or present revisions of a text are derived from its weave given a weft (see Fig.~\ref{fig:wwt}).
@@ -322,23 +310,29 @@ Suppose, an author is inserting a symbol $a$ after a symbol $b$ which already ha
 Then, the author (effectively, the program) is supposed to first insert \zero ~after $c$ to signal awareness and thus to ensure the correct order of siblings.
 
 The resulting ordering is still partial, as the authors may be unaware of each other doing concurrent changes, so the awareness relation still might be undefined for some siblings.
-Thus, we finally introduce the total order which, be it introduced earlier, might have caused confusion.
+Thus, we finally introduce the total order which, if introduced earlier, might have caused confusion.
 The \emph{weft order} assumes that all atoms are ordered in accordance with depth-first preorder traversal of the causal tree, while siblings are traversed in the descending  alphanumeric order of their awareness {\tt weftI}.
 This is a specialization of the awareness order, because awareness is transitive and, correspondingly, if $a$ is aware of $b$, then $\tt weftI(a) > weftI(b)$.
 The inequality is strict because two symbols cannot be aware of each other (circular dependency), so their wefts surely differ.
 
 While weft lengths may grow with the time as more authors join, the relative alphanumeric order of two {\tt weftI}s never flips.
-If we compared those two wefts at a moment when their lengths were $l$, then arrival of additional $k$ coauthors will extend those wefts to the length of $l+k$ chars.
-Still, the extension is done by inserting zero symbols at exactly the same positions, corresponding to the positions of URLs of the newcomer authors in an alphabetically sorted list of yarn URLs.
-In both wefts, all the newcomer's positions have equal zero values, so they do not affect the ordering.
+If we compared two wefts at a moment when their lengths were $l$, then the arrival of additional $k$ coauthors will extend those wefts to the length of $l+k$ chars.
+For example, the {\tt weftI} in the first line of Fig.~\ref{fig:wwt} has a value of ``4'' reflecting the edits made by Alice, but becomes ``40'' as Bob joins.
+Still, the extension is done by inserting zero symbols at exactly the same positions at every {\tt weftI}. %, corresponding to the positions of URLs of the newcomer authors in an alphabetically sorted list of yarn URLs.
+Thus, all the newcomer's positions in all the {\tt weftI}s would have equal zero values, so they will not affect the ordering.
 Relativistic effects are prevented by the fact that awareness {\tt weftI} does not depend on the observer.
-Hence, the awareness weft order is same for all observers and never flips.
+Hence, the awareness weft order is the same for all observers and never flips.
 
+\begin{lemma}
+CCI holds for causal trees. 
+\end{lemma}
+\begin{proof}
 Any changes to the text are expressed as new branches  of the causal tree; any concurrent changes (i.e. branches) are unambiguously merged and the resulting text is defined by the causal/awareness/weft order.
-The model satisfies the CCI requirements.
-Indeed, the causality preservation is achieved by adding changes in their awareness order.
-Convergence is clear, because given the same set of atoms, peers will order them the same way, thus converging to the same state of the text.
-Intention preservation is achieved by precisely identifying the place of application for every atomic operation.
+Let's go through the CCI requirements.
+First, the causality preservation is achieved by adding changes in their awareness order. Once a cause of an atom is unknown, neither the atom, nor the rest of the yarn should not (could not) be precessed.
+Second, the convergence is clear, because given the same set of atoms, peers will order them the same way, according to the awareness weft order. Thus, they will converge to the same state of the text.
+Third, intention preservation is achieved by precisely identifying the place of application for every atomic operation, so it can not be misapplied.
+\end{proof}
 
 The described formal system is based on simple definitions and, in most cases, it is easily implementable with regular expressions.
 For example, an operation of removing every symbol followed by a backspace is just trivial.
@@ -348,17 +342,15 @@ Still, it is important to hold the convergence requirement without any resort to
 %Namely, that all distributed replicas of a text must converge
 %to the same state, if supplied with the same set of changes
 %(atoms), independently of the order of arrival.
-To ease the implementation of that case, I will prove
-a small lemma. It will also shed more light on the
-correspondence between the causal order and the order of atoms
-in a weave.
+To ease the implementation of that case, I will prove a small lemma.
+It will also shed more light on the correspondence between the causal order and the order of atoms in a weave. 
 Note that a causal subtree occupies a solid interval in the weave; that is just a feature of depth-first traversal.
 Let's call it a causal block.
 A causal block starts with the root atom of the subtree; the rest is a sequence of zero or more causal blocks of the root's children.
 The question is: how will we locate the end of a causal block?
 \begin{lemma}\tighten A causal block rooted at $r \ne$ \aum ~lasts till
 the first atom $b$, whose parent is not $r$ but an atom
-$r$ is aware of (exclusively):  $cblock(r) = [r,b)$. \label{lemma:1}
+$r$ is aware of (exclusively):  $csl\_block(r) = [r,b)$. \label{lemma:1}
 \end{lemma} 
 \begin{proof}\tighten
 $b$ is the first element to the right from the causal
@@ -367,12 +359,12 @@ which resides in the weave somewhere to the left from $b$.
 $p \notin [r,b)$, because otherwise $b$ would also belong
 to the causal block of $r$, contradiction.
 Then, $p$ is to the left from $r$. Consequently, $r$ belongs
-to the causal block of $p$, $r \in cblock(p)$, because
+to the causal block of $p$, $r \in csl\_block(p)$, because
 causal blocks are solid intervals and both $p$ and $b$
-belong to $cblock(p)$. All atoms within a causal block are
+belong to $csl\_block(p)$. All atoms within a causal block are
 immediately or transitively caused by its root,
 ergo $r$ is aware of $p$. At the same time, no atom
-within $cblock(r)$ has a parent $r$ is aware of, unless
+within $csl\_block(r)$ has a parent $r$ is aware of, unless
 that parent is $r$, because $r$ cannot be aware of the
 atoms it caused.
 \end{proof}
