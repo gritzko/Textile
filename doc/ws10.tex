@@ -251,11 +251,11 @@ a5b2 & 52 &{\aum}Tex{\zero}s{\bsp}t{\eoa} & Text & Alice: save (see Fig.~\ref{fi
 \caption{Weft-weave-text correspondence for Fig.~\ref{fig:ds} \label{fig:wwt}}
 
 \resizebox{0.48\textwidth}{!}{
-\begin{tabular}{|c|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|c|c|}
 \hline
-form & {\tt atom1} & {\tt atom2} & {\tt atom3} & {\tt atom3c} & {\tt atom5} & {\tt atom5c} \\
+\em form & {\tt atom1} & {\tt atom2} & {\tt atom3} & {\tt atom3c} & {\tt atom4} & {\tt atom5} & {\tt atom5c} \\
 \hline
-value & x & b2 & xb2 & xa2 & xb2a2 & xa2b2 \\
+\em value & x & b2 & xb2 & xa2 & b2a2 & xb2a2 & xa2b2 \\
 \hline
 \end{tabular}
 }
@@ -345,12 +345,12 @@ Still, it is important to hold the convergence requirement without any resort to
 To ease the implementation of that case, I will prove a small lemma.
 It will also shed more light on the correspondence between the causal order and the order of atoms in a weave. 
 Note that a causal subtree occupies a solid interval in the weave; that is just a feature of depth-first traversal.
-Let's call it a causal block.
+Let's call it a causal block, $\mathcal{C}(r)$.
 A causal block starts with the root atom of the subtree; the rest is a sequence of zero or more causal blocks of the root's children.
-The question is: how will we locate the end of a causal block?
-\begin{lemma}\tighten A causal block rooted at $r \ne$ \aum ~lasts till
-the first atom $b$, whose parent is not $r$ but an atom
-$r$ is aware of (exclusively):  $csl\_block(r) = [r,b)$. \label{lemma:1}
+How will we locate the end of a causal block?
+\begin{lemma}\tighten For $r \ne$ \aum, $\mathcal{C}(r) = [r,b)$,
+where $b$ is the first atom, whose parent is not $r$ but an atom
+$r$ is aware of. \label{lemma:1}
 \end{lemma} 
 \begin{proof}\tighten
 $b$ is the first element to the right from the causal
@@ -358,16 +358,20 @@ block of $r$; $b$ surely exists. Parent of $b$ is an atom $p$,
 which resides in the weave somewhere to the left from $b$.
 $p \notin [r,b)$, because otherwise $b$ would also belong
 to the causal block of $r$, contradiction.
-Then, $p$ is to the left from $r$. Consequently, $r$ belongs
-to the causal block of $p$, $r \in csl\_block(p)$, because
+Then, $p$ is to the left from $r$. 
+Consequently, $r \in \mathcal{C}(p)$, because
 causal blocks are solid intervals and both $p$ and $b$
-belong to $csl\_block(p)$. All atoms within a causal block are
+belong to $\mathcal{C}(p)$. All atoms within a causal block are
 immediately or transitively caused by its root,
 ergo $r$ is aware of $p$. At the same time, no atom
-within $csl\_block(r)$ has a parent $r$ is aware of, unless
+within $\mathcal{C}(r)$ has a parent $r$ is aware of, unless
 that parent is $r$, because $r$ cannot be aware of the
 atoms it caused.
 \end{proof}
+
+%  $\mathcal{C}(r) = r\mathcal{C}(s_1)\mathcal{C}(s_2)\ldots \mathcal{C}(s_k), r \to s_i$.
+%\begin{lemma}\tighten For $r \ne \aum$, $\mathcal{C}(r)=[r,b)$, ~$b$ is
+%the first atom, such as $p \to b$, $p \neq r$ and $p \prec r$. \label{lemma:1}
 
 
 \section{Implementation}	   \label{sec:algos}
@@ -377,29 +381,33 @@ High-level languages, such as JavaScript, will have problems processing a causal
 That necessitates the regex implementation.
 Implementing the CT model in regular expressions consumes some effort; fluency in Perl-compatible regular expression dialect (PCRE) is of great help when reading this Section. 
 The number of formats and transformations employed in the causal tree model is quite high (see Fig.~\ref{fig:ops}); but, most of transformations are implemented with a couple of regular expressions. 
-For easier narration, this section will describe a typical workflow loosely based on the collaborative text authoring made by several users who communicate either directly or through a server, either in real-time or monthly.
+For easier narration, this section will describe a typical workflow loosely based on the collaborative text authoring by several users. The algorithms are independent of the number of users, their topology of interaction (be it server-based ``star'' or peer-to-peer ``mesh'') or round-trip time (be it real-time or monthly).
+
+Weave-text-patch-weave is the main working cycle. A user edits the text, the change is serialized as a patch, the patch is integrated into weaves of all the users. 
+%each atom is represented by its symbol, then two-char id of the causing atom, then two-char id of the atom itself, five chars total (see~Fig.~\ref{fig:forms}).
 
 \begin{figure}[t] \label{fig:ops}
 \includegraphics[width=0.48\textwidth]{operations.pdf}
 \caption{Causal model formats and operations.} \label{fig:ops}
 \end{figure}
 
-\subsection{Editing (the main loop)}
-
-The central format of the model is {\tt weave5c}, a weave where each atom is represented by its symbol, then two-char id of the causing atom, then two-char id of the atom itself, five chars total (see~Fig.~\ref{fig:forms}).
+\subsection{Scouring (weave to text)}
+The central format of the model is {\tt weave5c}.
 A weave might be transformed into {\tt text3} by \emph{scouring}: clearing weave of all the deleted atoms (immediately followed by a \bsp) and all the special symbols: \\
 {\small \verb`s/(...(..))(`\bsp\verb`\2..)+|[`\bsp\zero\cnc\verb`].{4}|(.)..(..)/$4$5/g`}\\
 Out of the atom's 5c-form, only the symbol and its id are taken, thus the output is a 3-form.
-This regex is simplified: it ignores undeletions (see Sec.~\ref{sec:undo}).
-That is necessary for the ease of understanding, as PCRE is an étalon of ``write-only language''. 
+This regex is simplified for the ease of understanding; it ignores undeletions (see Sec.~\ref{sec:undo}).
+%That is necessary , as PCRE is an étalon of ``write-only language''. 
 The resulting {\tt text3} might be trivially \emph{stringified} into {\tt text1}, i.e. the text itself: {\small \verb+s/(.)../$1/g+}.
 
-The text is then put into the editor; a user makes some changes.
+\subsection{Diffing (text to patch)}
+The text is then put into the editor; the user makes some changes.
 Those changes might be tracked either by listening to  basic events or by comparing text snapshots using diff and/or heuristics.
 The result is a chain of {\tt patch1} substrings corresponding to inserted and removed spans of the text; their offsets in the original text are known.
 That allows to check {\tt text3} for atom ids corresponding to the change: either attachment points for insertions or sets of removed ids for deletions.
-That allows to \emph{spin} {\tt patch3} and further to \emph{braid} a {\tt patch5c}, which contains the inserted atoms in 5c-form. 
+Then, we may \emph{spin} {\tt patch3} and \emph{braid} a {\tt patch5c}, which contains the inserted atoms in their full 5c-form. 
 
+\subsection{Patching (patch to weave)}
 The {\tt patch5c} is then distributed to other users. Once it arrives, it should be integrated into their weaves.
 First, it is split into causal blocks; one block is typically a causal chain of atoms corresponding to a period of uninterrupted typing.
 A block has a single attachment point in the causal tree and might be inserted into the weave as a substring.
@@ -415,7 +423,7 @@ A {\tt filtre} matches two-char atom ids that fall within the causal subtree cut
 Another common use for {\tt filtre} is to obtain a historical revision of a weave:  {\small \verb`s/(...($F))|.{5}/$1/g`}, which in turn may be scoured to get a historical revision of the text.
 In the case of patching, we produce a {\tt filtre} out of the head symbol's awareness {\tt weft2} just to ensure the author of the head symbol was aware of the symbol to the right (no unaware siblings).
 
-\subsection{Unaware siblings} \label{sec:unre}
+\subsection{Patching with unaware siblings} \label{sec:unre}
 
 Well, what if unaware siblings are introduced by other users, so the first method of patching fails?
 This is exactly the situation to apply Lemma~\ref{lemma:1}. 
@@ -426,7 +434,7 @@ The assumption is that concurrent insertion of symbols at the same position in t
 It should be noted that the simpler no-unaware-siblings patching algorithm employs awareness wefts as well.
 Luckily, in that case wefts might be cached and incrementally updated due to append-only nature of yarns, so the costly recalculation is unnecessary.
 
-\subsection{Pulling} \label{sec:pulling}
+\subsection{Pulling awareness wefts} \label{sec:pulling}
 
 The operation of \emph{pulling} derives an awareness weft of an atom.
 As an atom id is a trivial {\tt weft2}, pulling might be seen as transitive closure of the awareness relation.
@@ -436,19 +444,17 @@ Such watery wefts are \emph{dried} into non-redundant form by a reverse filtre t
 {\tt revfiltre('a1a4b2') = \verb+'a[^1-∞]|a[^4-∞]|b[^2-∞]'+}.\\
 Once two consecutive iterations produce the same weft, the closure has converged.
 Making numerous passes of the complete weave might be costly.
-For efficiency reasons, pulling is done using a condensed form of a weave named {\tt deps4}; it contains only (id; causing id) pairs for the atoms that reference other yarns.
+For efficiency reasons, pulling is done using a condensed form of a weave named {\tt deps4}; it only contains atoms that reference other yarns.
 If an atom is caused by another atom on the same yarn, it does not affect the result of pulling. 
 
 
-\subsection{Undo}	\label{sec:undo}
-
+\subsection{Scouring (with undo and shortcuts)}	\label{sec:undo}
 The undo function boils down to deleting all insertions and cancelling all deletions that happened after some recent weft.
-The cancelling is done by the \cnc ~symbol, which is a ``deletion for deletions''.
+The cancelling is done by the \cnc ~symbol, which is a ``deletion for deletions'';~\cnc ~recovers its causing symbol, by cancelling all deletions it is aware of.
 The introduction of the symbol is mostly a technical optimization to allow for bulk processing of deletions and undeletions. 
 Differently from insertions, \bsp ~and \cnc ~do not form causal chains naturally and processing a thousand of \bsp ~one by one might be time-consuming.
-\cnc ~recovers its causing symbol, by cancelling all deletions it is aware of.
 In general, the regex implementation employs several shortcuts to improve performance.
-It is good as long as final result (the text) matches the definitions of Sec.~\ref{sec:textile}.
+It is good as long as the final result (the text) matches the definitions of Sec.~\ref{sec:textile}.
 Special symbols are most heavily ``shortcut'' as they do not show up in the resulting text.
 As an extreme example, \zero ~does not affect any operation but the pulling, and pulling does not depend on atom order.
 Just to get \zero's out of the way, they are appended after \eoa.
@@ -471,18 +477,18 @@ Namely, instead of the standard (yarn id; symbol id) pair, a symbol is followed 
 If no such change happened between the two revisions, then id is null.
 The {\tt text3h} string may then be transformed into highlighted text or HTML.
 
-The operation of saving is only supposed to signal the author's awareness/acceptance of certain revision.
-Physical ``save'' to the permanent storage happens automatically once atoms are appended to yarns and broadcasted; there is no way to revoke atoms.
-Thus, save is done by  adding \zero ~atoms caused by the tail atoms of all known yarns.
+%The operation of saving is only supposed to signal the author's awareness/acceptance of certain revision.
+%Physical ``save'' to the permanent storage happens automatically once atoms are appended to yarns and broadcasted; there is no way to revoke atoms.
+%Thus, save is done by  adding \zero ~atoms caused by the tail atoms of all known yarns.
 
 A solid slice of RCS functionality is dealing with branches, i.e. parallel versions of the same text/source.
-In a causal tree, a branch in the RCS sense corresponds to literally branches of atoms.
+In a causal tree, a branch in the RCS sense corresponds to (literally) a set of branches.
 Those branches may be attached or detached on request.
 Storage-wise, branches might be either tails of certain yarns cut off by a weft or entire special yarns.
 Branches may host parts of a text with special access rights, overlay modifications (notes, annotations, bubbles/balloons), pending/discussed draft modifications or just scratchpad remarks.
 As long as the point of attachment still exists in the text, a branch might be cleanly attached.
 Otherwise, it is attached ``uncleanly'' into approximately the same place.
-Differently from the diff-patch paradigm, the process does not depend on mutations of the context, demands no heuristics, combinatorics or manual intervention.
+Differently from the diff-patch paradigm, the process does not depend on mutations of the context, demands no heuristics, combinatorics or manual intervention. Changes are detachable and, generally, more manageable, as CT tracks each symbol's origins and dependencies.
 
 To summarize, the model now implements all the basic functions of a revision control system in a simple, portable and truly decentralized way.
 
@@ -497,17 +503,17 @@ Section \ref{sec:io} discusses input-output (I/O) patterns of data structures us
 Section \ref{sec:sec} applies the CT model to hierarchically structured text.
 
 \subsection{Limits of atom-based formats} \label{sec:formats}
-First source of risk is CPU time necessary to process such a fine grained change/history format.
-Thanks to regular expressions, all the operations listed in Section~\ref{sec:algos} run in negligible time even on bigger texts. 
+First source of risk is the CPU time necessary to process such a fine grained change/history format.
+With regular expressions, all the operations listed in Section~\ref{sec:algos} run in negligible time even on bigger texts. 
 If ran within a browser, $O(N)$ regular expression passes a 1MB string in around a millisecond.
 The patching operation for the case of unaware siblings may take more time, let it be 100ms, but it is supposed to be a rare ``once a year'' case.
 The overall computational cost of assembling a weave from source yarns using regexes is $O(N^{2})$, i.e. a combinatory explosion is possible, unless the weave is cached.
 In the latter case, $O(N^{2})$ accumulates historically, over the years of the text's lifetime.
 
 Another risky trick is using Unicode chars as, essentially, numbers.
-In fact, common regular expression engines reliably support only the first 50,000 code points or, more precisely, the $[U+0,U+D800)$ interval. 
+In fact, common regular expression engines reliably support only the first 50,000 code points or, more precisely, the [U+0,U+D800) interval. 
 In case a single author generates more than 50K of symbols, that author should be assigned an additional yarn id.
-In total, the capacity of this numbering system limits text size to $2,5\times10^9$ symbols, which is more than enough (three volumes of ``War and Peace'' in Russian take 2,56MB in UTF-8). 
+In total, the capacity of this numbering system limits text size to $2,5\times10^9$ symbols, which is more than enough; three volumes of ``War and Peace'' in Russian take less than 0.1\% of that, 2,56MB in UTF-8. 
 The 50,000 code points limitation also limits the number of yarns and, correspondingly, coauthors of a single document.
 Practically, it is hardly a problem, as even the most popular project, namely Wikipedia, has only three articles with an author count above $2^{15}$: the Introduction, the Sandbox and the Archive of the Sandbox, i.e. pages every new user predictably bumps into.
 Excluding the exercise, complaint and similar pages, the topmost ``real'' page has an author count of 13680 as of the 2009-08-16 snapshot.
@@ -545,27 +551,29 @@ Animal & 69.9Mb & 1.1Mb & 252Kb & 254Ka & 28Kc & 3.45Mb\\
 \caption{Space consumed by full-history storage in misc formats; postfix ``b'' stands for bytes, ``c'' for Unicode chars (1-2 bytes, depending on charset and encoding), ``a'' for 5-form atoms (5-10 bytes).} \label{fig:sizes} % Megabytes are decimal.
 \end{figure}
 
-To estimate growth dynamics of a weave, I plotted weave size evolution for two popular Wikipedia pages: ``Coca-Cola'' and ``Joseph Stalin''.
-Weaves were derived from the full history dump dated January 2008 (the last successful one for enwiki).
-The results are shown at Fig.~\ref{fig:weave}.
-Vandalism was intentionally filtered out as it specifically inflates size of a weave (the entire text is deleted, then recovered back).
+To estimate growth dynamics and overhead of a weave, I plotted weave size evolution for five Wikipedia articles of different classes (se Fig.~\ref{fig:weave}), using the January 2008 enwiki dump.
+The articles used were ``Coca-Cola'' (popular), ``Joseph Stalin'' (popular, big, controversial), ``Goulash'' (obscure), ``Animal'' (popular, term), ``2007'' (popular, big, year).
+%Weaves were derived from the full history dump dated January 2008.
+The first finding is that article evolution depends a lot on the human factor, e.g. the ``editorial pressure'' keeping the article size within bounds.
+The second finding was that the rate of vandalism is fairly high.
+Vandalism had to be filtered out as it arbitrarily inflates sizes of the weaves, e.g. if the entire text is deleted and recovered back, or megabytes of garbage are pasted into the article.
 Namely, all changes that were rolled back within 20 revisions were  not counted.
-I was checking for pairs of identical revisions to declare a rollback, so some vandalism acts were left undetected.
-I assume that large gaps in the graph correspond exactly to undetected vandalism cases (weave size increased abruptly, text size stayed in place).
 Fortunately, separating cases of vandalism and edit warring from article refactoring and well-intentioned edits is out of scope of this article.
-Even that simple criteria provided a clear enough general picture.
+While the simple criteria left some vandalism undetected, it was good enough to see the trends.
+%I assume that large gaps in the graph correspond exactly to undetected vandalism cases (weave size increased abruptly, text size stayed in place).
 During periods of unconstrained growth, weave size grows (roughly) linearly with the number of edits, as well as the article size.
-But, there is also editorial pressure that tries to keep article size within bounds. Sometimes, an article gets refactored and even shrinks.
-
-What is relevant for us is the general correspondence between space requirements of different text storage formats.
-I have compared history sizes of several Wikipedia articles kept in six formats: bare snapshots, gzip and 7zip of snapshots, {\tt weave5c}, plain text of the last revision (no history) and a git repository keeping the entire history, see Fig.~\ref{fig:sizes}.
+But, there is also editorial pressure that keeps the article size within bounds. Sometimes, an article gets refactored and even shrinks.
+What is relevant for us is the general correspondence between space requirements of different full-history text storage formats.
+I have compared six formats: bare snapshots, gzip and 7zip of snapshots, {\tt weave5c}, plain text of the last revision (no history) and a git repository keeping the entire history (measured immediately after \verb+git gc+, i.e. compression and garbage collection), see Fig.~\ref{fig:sizes}.
 As a rule of thumb, \emph{full} weave size may be estimated as x100 the plain text size.
 Mass of a pre-filtered weave is likely be around text size times 5 or 10, depending on charset/encoding, which factor is defined by the form-5 overhead.
 Interestingly enough, a gzip of snapshots is far worse than an uncompressed weave.
-A 7zip archive is better off, its main shortcoming being high CPU consumption (it took around 20 seconds to unpack some of the articles).
-Space efficiency of {\tt weave5c} as a versioned text format is comparable to the space efficiency of a git repository storing the same page history (measured immediately after \verb+git gc+, i.e. compression and garbage collection).
-As a summary, {\tt weave5c} is effective as a server-side versioned text format. 
+A 7zip archive is better off, its main shortcoming being high CPU consumption. It took around 20 seconds to 7zip-unpack some of the articles, which makes the format  suitable for backup purposes only.
+
+As a conclusion, the space efficiency of {\tt weave5c} as a versioned text format is comparable to the space efficiency of a git repository storing the same page history.
+Thus, {\tt weave5c} is effective as a server-side versioned text format, although vandalism better be cleared, as it may arbitrarily inflate the overhead.
 For sending to the client side, a weave better be prefiltered to keep only those changes of interest.
+
 
 \subsection{I/O patterns}	\label{sec:io}
 
@@ -607,7 +615,7 @@ Once the correct hierarchical structure of the text is ensured by the structure 
 In either case, this alternative seems more practical than distributed real-time revision control of DOM trees (see Sec.~\ref{sec:waveot}).
 
 
-\section{Parallels and reflections} \label{sec:reflections}
+\section{Related work} \label{sec:reflections}
 
 The model itself, its data formats and algorithms are now fully described, so we may compare them to the relevant work in the field.
 Not to limit ourselves to feature-by-feature comparisons, I will put the CT model into a broader context to uncover similarities and dependencies that have a chance of being useful or insightful.
@@ -634,27 +642,27 @@ As well, CT has some similarities to another post-OT system named Logoot~\cite{l
 Logoot's list-identifiers can be compared to concatenations of CT ids along the path from the root to the atom.
 In CT, this structure is used implicitly.
 Logoot takes some measures to avoid accumulation of tombstones (i.e. deleted historical content). That is mostly caused by its reliance on line-based granularity of change tracking, which exaggerates the overhead of history-keeping, in case small changes are prevalent.
-Tombstone-avoidance is much less relevant for symbol-based revision control.
+Tombstone avoidance is much less relevant for symbol-based revision control.
 CT follows the DRCS principle of each repository being an independent peer hosting the entire known history.
-In this context, Logoot's history-elimination is unacceptable. \\
+In this context, Logoot's history elimination is unacceptable. \\
 Regex-based implementation is an absolutely unique feature of CT, not ever attempted in OT or post-OT or any other kind of revision control framework.
 
 \subsection{Xanadu}
 
 There are some parallels between CT and the historical Xanadu hypertext model.
 The spirit of Xanadu is to keep all the versions of all texts at the same time, by clearly separating the original input from the actual revisions of the text~\cite{xanacarpet}.
-Very similar  approach is seen in causal trees: primary input is put into yarns, while all the actual revisions are subsequences of the weave.
+A very similar  approach is seen in causal trees: primary input is put into yarns, while all the actual revisions are subsequences of the weave.
 The Xanadu objectives of ``origin connection'', ``side-side intercomparison'', ``deep version management'' and ``incremental publishing'' are addressed in CT.
 Still, the implementation is very different.
 
 \subsection{Lamport-Fidge vector clocks} \label{sec:lamport}
 
-The causal tree model perfectly matches entities of the Lamport--Fidge~\cite{lamport,fidge} vector/logical clocks model.
-Namely, yarn corresponds to a process, foreign causality relations - to messages, yarn offsets to local logical clocks and wefts to vector clocks. 
+The causal tree model perfectly matches the entities of the Lamport--Fidge~\cite{lamport,fidge} vector/logical clocks model.
+Namely, a yarn corresponds to a process, foreign causality relations - to messages, yarn offsets to local logical clocks and wefts to vector clocks. 
 Awareness order follows the lines of Lamport's synchronized logical timestamps.
 The weft order is similar to Fidge's vector clock ordering, but there are no strict equivalence here.
 Interestingly, the Fidge-Lamport model was inspired by the special theory of relativity.
-It was implicit in the article, but we always observed the causal tree from a certain frame of reference (\emph{frame} as in Sec.~\ref{sec:data}), centered at certain yarn.
+In this article, we always observed a causal tree from a certain \emph{frame} of reference (see Sec.~\ref{sec:data}) centered at a certain yarn.
 
 \subsection{Distributed wikis}
 
@@ -696,19 +704,24 @@ slow unresponsive user interface~\cite{own-experience}.
 According to an insider~\cite{gerasimov}, in 6 months since the
 projects's launch the possibility of working with partial
 histories is not  implemented yet; pages are bootstrapped with
-their complete histories. Compare that to the ease of applying
-a filtre to a weave in the CT model.
+their complete histories. 
+%Compare that to the ease of applying a filtre to a weave in the CT model.
 
 
 \section {Conclusion} \label{sec:conclusion}
 
-While many previous revision control technologies were either fully distributed or real-time or Web-based, the causal trees combine all that at once.
-Thanks to a very simple string based format and trivially portable regex-based algorithms, causal trees have a good chance of making the critical step from an application to an open format used at mass scale in highly distributed highly heterogeneous environment, which is the Open Web.
+%While many previous revision control technologies were either fully distributed or real-time or Web-based, the causal trees combine all that at once.
+
+The CT model makes four main contributions. First, it allows to implement first-class real-time collaborative editing in the browser (as in Google Docs). Second, it allows that not only in a client-server setting, but in a network of any topology. That enables highly decentralized workflows (like in git). 
+On the technical side, the third contribution is a simple string-based format for versioned text and trivially portable regex-based algorithms. 
+That enables the fourth contribution which is the deep hypertext capability with instant access to every prior version of a document, per-character authorship information, real-time difference between any two versions and attaching/detaching of branches.
+The fourth one is the most hard to estimate, as there is nothing yet to compare it to.
+%causal trees are able of making the critical step from an application to an open format used at mass scale in highly distributed highly heterogeneous environment, which is the Open Web.
 
 
 \section{Acknowledgements}
 
-Many thanks to Mikhail Volkov, Bram Cohen, Alexander Pronchenkov, Sergey Pupyrev and Jan Gerber for priceless feedback that influenced this paper. \newpage
+Many thanks to M.V. Volkov, B. Cohen, A. Pronchenkov, S. Pupyrev, N. Andrade, A. Iosup and J. Gerber for priceless feedback that influenced this paper. 
 \bibliographystyle{plain}
 \bibstyle{plain}
 \small
