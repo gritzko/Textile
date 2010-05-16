@@ -2,12 +2,8 @@
 \usepackage{fontspec}
 \usepackage{xunicode}
 \usepackage{amsmath}
-%\usepackage{amsthm}
 \usepackage{graphicx}
 \date{}
-%\newtheoremstyle{dense}{10pt}{40pt}
-%\theoremstyle{dense}
-%\theoremstyle{remark}
 \newtheorem{lemma}{Lemma}
 \newcommand{\tighten}{\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}\setlength{\parsep}{0pt}}
 \newenvironment{tightitem}{
@@ -30,22 +26,11 @@
 \maketitle
 
 \begin{abstract}
-While text versioning was definitely a part of the original
-hypertext concept~\cite{nls,literary,hyp-ed-sys},
-it is rarely considered in this context today.
-Still, we know that revision control underlies the most exciting
-social co-authoring projects of today's Internet, namely the
-Wikipedia and the Linux kernel. With an intention to adapt the
-advanced revision control technologies and practices to the
-conditions of the Open Web, the paper reconsiders some obsolete
-assumptions and develops a new versioned text format perfectly
-processible with standard regular expressions (PCRE~\cite{pcre}).
-The resulting \emph{deep} hypertext model extends the linking
-concept from inter-document associations to intra-document
-dependencies and evolution. As the most promising consequence,
-it allows distributed and real-time revision control in the Open
-Web, i.e. co-evolution and mutation exchange among multiple
-competing versions of the same text. 
+While text versioning was definitely a part of the original hypertext concept~\cite{nls,literary,hyp-ed-sys}, it is rarely considered in this context today.
+Still, we know that revision control underlies the most exciting social co-authoring projects of today's Internet, namely the Wikipedia and the Linux kernel.
+With an intention to adapt the advanced revision control technologies and practices to the conditions of the Open Web, the paper reconsiders some obsolete assumptions and develops a new versioned text format perfectly processable with standard regular expressions (PCRE~\cite{pcre}).
+The resulting \emph{deep} hypertext model extends the linking concept from inter-document associations to intra-document dependencies and evolution.
+As the most promising consequence, it allows distributed and real-time revision control in the Open Web, i.e. co-evolution and mutation exchange among multiple competing versions of the same text. 
 
 \end{abstract}
 
@@ -69,7 +54,7 @@ Ironically, document evolution was addressed in-depth in the original Xanadu hyp
 Currently, most of advances in document evolution and revision control are made in the context of Source Code Management (SCM).
 Considering the wiki-world and Wikipedia in particular, typically the employed revision control technology is as obsolete as you can possibly get.
 That is especially clear if compared to the recent developments in Distributed Revision Control Systems (DRCS) employed by the Linux kernel and other large-scale software development projects.
-Another relatively new development is real-time revision control, which powers group collaboration environments. Notable examples are Etherpad, Google Docs, Google Wave.
+Another relatively new development is the real-time revision control, which powers group collaboration environments. Notable examples are Etherpad, Google Docs, Google Wave.
 
 Knowledge fusion scales our perception, but how can we scale the fusion itself?
 Consider Wikipedia; it certainly faces a scalability barrier \cite{no-singularity, wp-decay}.
@@ -138,10 +123,11 @@ That made change serialization trivial: it was sufficient to mention inserted/re
 But locking did not scale well, so later systems (CVS, Subversion) switched to optimistic merge of non-conflicting concurrent changes.
 For the cases of no RCS, there was a practice of changesets, maintained and distributed as patches \cite{stdpatch} in parallel with the main ``upstream'' codebase.
 These practices boosted the use of revision control for communication, in addition to archival. 
-In presence of concurrent changes, the problem of change serialization became less trivial.
+In the presence of concurrent changes, the problem of change serialization became less trivial.
 The classic \verb+patch+ utility employs a set of heuristics and combinatorial algorithms to apply changes properly; positions are always considered as approximate~\cite{patch,fraser}, every change is shipped with its \emph{context}, i.e. chunks of unchanged text before and after the changed area.
 %New methods in change serialization were necessitated by the emergence of real-time revision control systems, mostly used in groupware.
 
+\subsection{Operational Transformation}
 Emergence of real-time groupware demanded new methods of change serialization.
 An earlier example is Google Docs, which used the classic revision control techniques~\cite{diff-match-patch}, such as patches~\cite{patch} and Meyer's diff~\cite{meyers-diff}; it just invoked those operations more often, automatically.
 The Google Wave project employed a new truly real-time approach derived from the previous academic work~\cite{jupiter} on Operational Transformation (OT).
@@ -161,9 +147,10 @@ The source of OT complexity is the entangled web of interdependencies between op
 Several OT models were later found to be inconsistent; e.g. see \cite{molli-proving, woot} for an observation of the TP2 puzzle story.
 The relatively recent SDT flavor is believed to be consistent even in peer-to-peer environments; in~\cite{lili-preserving} authors reference ``a 12-page formal correctness proof'' of the fact; the detailed description of SDT is 59 pages~\cite{lili-ensuring}.
 Indeed, once we allow non-realtime/offline functioning, lots of concurrency and absence of any central coordinating entity, the combinatorics of OT becomes extremely poor (see Sec.~\ref{sec:ot}).
-Many OT flavors resort to a single central authority to merge concurrent changes in a single consistent way; the most notable example is Google Wave's OT.
-The inner workings of Wave OT are not known yet, the only released whitepaper~\cite{waveot} gives a very general overview of the algorithms (see Sec.~\ref{sec:waveot}).
+Many OT flavors resort to a single central authority to merge concurrent changes in a single consistent way; the most notable example is Google Wave's OT~\cite{waveot}.
+%The inner workings of Wave OT are not known yet, the only released whitepaper~\cite{waveot} gives a very general overview of the algorithms (see Sec.~\ref{sec:waveot}).
 
+\subsection{Obsolete assumptions}
 At this point, it makes sense to reconsider basic assumptions that shaped the classic technologies of revision control, as those assumptions seem weak in the present circumstances. 
 First of all, that atoms are necessarily addressed by their positions in a text.
 The method introduces numerous unpleasant consequences, as position numbers in a changing text are very unreliable. 
@@ -191,8 +178,8 @@ First of all, revision control is normally implemented in complex standalone sof
 Although there are JavaScript implementations of basic algorithms such as Fraser's diff-match-patch~\cite{diff-match-patch}, those are heavyweight heuristic-rich combinatorial algorithms and, frankly, better be optimized out completely.
 I will target a set of version control algorithms entirely implementable in linear-complexity regular expressions without any combinatorial part.
 
-Second, both to exclude position-dependent logic and to allow for truly real-time revision control, I will represent all mutations at single-symbol granularity, each symbol being uniquely identified.
-Such uniquely identified symbols are named \emph{atoms}.
+Second, to exclude position-dependent logic and to allow for truly real-time revision control, I will represent all mutations at per-symbol granularity, each symbol being uniquely identified.
+Such ``symbols with identity'' are named \emph{atoms}.
 
 Third, the problem of merging concurrent changes must be resolved in a simple automatic way, without any user intervention.
 Definitely, \emph{semantically} correct merge of changes is impossible in principle; semantically correct concurrent changes, being merged cleanly in the technical sense, still may produce a semantically incorrect result.
@@ -238,13 +225,13 @@ Further on, all data structure names will be postfixed with the the form they us
 \caption{Yarns, wefts and weaves: Alice writes ``Test'', Bob corrects to ``Text'', Alice saves the state. \label{fig:ds} }
 
 \resizebox{0.48\textwidth}{!}{
-\begin{tabular}{|c|c|c|c|l|}
+\begin{tabular}{|l|c|c|c|c|}
 \hline
-{\tt weft2} & {\tt weftI} & {\tt weave1} & {\tt text1} & comment\\
+\em user actions & {\tt weft2} & {\tt weftI} & {\tt weave1} & {\tt text1} \\
 \hline
-a4 & 4 &\aum Test{\eoa} & Test & Alice typed in ``Test'' \\
-a4b2 & 42 &{\aum}Texs{\bsp}t{\eoa} & Text & Bob: ``Test''$\to$``Text'' \\
-a5b2 & 52 &{\aum}Tex{\zero}s{\bsp}t{\eoa} & Text & Alice: save (see Fig.~\ref{fig:w5c})\\
+\em Alice typed in ``Test'' & a4 & 4 &\aum Test{\eoa} & Test \\
+\em Bob: ``Test''$\to$``Text'' & a4b2 & 42 &{\aum}Texs{\bsp}t{\eoa} & Text \\
+\em  Alice saves Bob's edits & a5b2 & 52 &{\aum}Tex{\zero}s{\bsp}t{\eoa} & Text \\
 \hline
 \end{tabular}
 }
@@ -346,7 +333,7 @@ To ease the implementation of that case, I will prove a small lemma.
 It will also shed more light on the correspondence between the causal order and the order of atoms in a weave. 
 Note that a causal subtree occupies a solid interval in the weave; that is just a feature of depth-first traversal.
 Let's call it a causal block, $\mathcal{C}(r)$.
-A causal block starts with the root atom of the subtree; the rest is a sequence of zero or more causal blocks of the root's children.
+A causal block starts with $r$, the root atom of the subtree; the rest is a sequence of zero or more causal blocks of the root's children.
 How will we locate the end of a causal block?
 \begin{lemma}\tighten For $r \ne$ \aum, $\mathcal{C}(r) = [r,b)$,
 where $b$ is the first atom, whose parent is not $r$ but an atom
@@ -381,9 +368,9 @@ High-level languages, such as JavaScript, will have problems processing a causal
 That necessitates the regex implementation.
 Implementing the CT model in regular expressions consumes some effort; fluency in Perl-compatible regular expression dialect (PCRE) is of great help when reading this Section. 
 The number of formats and transformations employed in the causal tree model is quite high (see Fig.~\ref{fig:ops}); but, most of transformations are implemented with a couple of regular expressions. 
-For easier narration, this section will describe a typical workflow loosely based on the collaborative text authoring by several users. The algorithms are independent of the number of users, their topology of interaction (be it server-based ``star'' or peer-to-peer ``mesh'') or round-trip time (be it real-time or monthly).
+For easier narration, this section will describe a typical workflow loosely based on the collaborative text authoring by several users. The algorithms are independent of the number of users, their topology of interaction (be it server-based ``star'' or peer-to-peer ``mesh'') or round-trip time (be it real-time or monthly sync).
 
-Weave-text-patch-weave is the main working cycle. A user edits the text, the change is serialized as a patch, the patch is integrated into weaves of all the users. 
+Weave-text-patch-weave is the main working cycle. A user edits the text, the change is serialized as a patch, the patch is integrated into the weaves of all the users. 
 %each atom is represented by its symbol, then two-char id of the causing atom, then two-char id of the atom itself, five chars total (see~Fig.~\ref{fig:forms}).
 
 \begin{figure}[t] \label{fig:ops}
@@ -394,7 +381,7 @@ Weave-text-patch-weave is the main working cycle. A user edits the text, the cha
 \subsection{Scouring (weave to text)}
 The central format of the model is {\tt weave5c}.
 A weave might be transformed into {\tt text3} by \emph{scouring}: clearing weave of all the deleted atoms (immediately followed by a \bsp) and all the special symbols: \\
-{\small \verb`s/(...(..))(`\bsp\verb`\2..)+|[`\bsp\zero\cnc\verb`].{4}|(.)..(..)/$4$5/g`}\\
+{\small \verb`s/(...(..))(`\bsp\verb`\2..)+|[`\bsp\zero\verb`].{4}|(.)..(..)/$4$5/g`}\\
 Out of the atom's 5c-form, only the symbol and its id are taken, thus the output is a 3-form.
 This regex is simplified for the ease of understanding; it ignores undeletions (see Sec.~\ref{sec:undo}).
 %That is necessary , as PCRE is an étalon of ``write-only language''. 
@@ -431,8 +418,8 @@ We single out the causal block of the heads's causing symbol, then we split it i
 The implementation of this case is less straightforward.
 While still relying on regular expressions, it involves some ``manual'' work and, most importantly, the costly operation of \emph{pulling} (awareness weft derivation), which does several passes of the weave (see Sec.~\ref{sec:pulling}).
 The assumption is that concurrent insertion of symbols at the same position in the text is a rare event, so this non-trivial machinery will be invoked ``once a year''.
-It should be noted that the simpler no-unaware-siblings patching algorithm employs awareness wefts as well.
-Luckily, in that case wefts might be cached and incrementally updated due to append-only nature of yarns, so the costly recalculation is unnecessary.
+Note that the simpler no-unaware-siblings patching algorithm employs awareness wefts as well.
+Luckily, in that case wefts might be cached and incrementally updated without costly recalculation, due to append-only nature of yarns.
 
 \subsection{Pulling awareness wefts} \label{sec:pulling}
 
@@ -443,9 +430,9 @@ A string of concatenated ids is technically a {\tt weft2}, but it has lots of re
 Such watery wefts are \emph{dried} into non-redundant form by a reverse filtre that matches everything but the latest id in every yarn:
 {\tt revfiltre('a1a4b2') = \verb+'a[^1-∞]|a[^4-∞]|b[^2-∞]'+}.\\
 Once two consecutive iterations produce the same weft, the closure has converged.
-Making numerous passes of the complete weave might be costly.
-For efficiency reasons, pulling is done using a condensed form of a weave named {\tt deps4}; it only contains atoms that reference other yarns.
-If an atom is caused by another atom on the same yarn, it does not affect the result of pulling. 
+Making numerous passes of the complete weave might be costly, so pulling is done using a condensed form of a weave named {\tt deps4}.
+It only contains atoms that reference other yarns, because same-yarn causality relations do not affect the result of pulling.
+%If an atom is caused by another atom on the same yarn,it does not  
 
 
 \subsection{Scouring (with undo and shortcuts)}	\label{sec:undo}
@@ -468,7 +455,7 @@ Thus, the full scouring regex is: \\
 \verb`.0.0.(?:[`\bsp\zero\cnc\verb`].{4})*|`\verb`(.)..(..)(?:[`\bsp\verb``\cnc\verb`].{4})*/$1$2/g`}\\
 Quite nicely, it now lacks backreferences and thus friendly to DFA/NFA-based regex engines~\cite{re2}.
 
-\subsection{Misc operations}
+\subsection{Advanced operations}
 
 So, we went through the full cycle: from a weave to a text to a patch and back to the weave.
 Other operations are less critical for the understanding of the model.
@@ -489,6 +476,8 @@ Branches may host parts of a text with special access rights, overlay modificati
 As long as the point of attachment still exists in the text, a branch might be cleanly attached.
 Otherwise, it is attached ``uncleanly'' into approximately the same place.
 Differently from the diff-patch paradigm, the process does not depend on mutations of the context, demands no heuristics, combinatorics or manual intervention. Changes are detachable and, generally, more manageable, as CT tracks each symbol's origins and dependencies.
+
+Symbol-precise addressing also opens the possibility of \emph{deep linking}, i.e. referencing particular ranges in a changing text or particular versions of the text, or both. That extends the capabilities of both linking and transclusion, up to the possibility of Excel-like referencing of text ranges.
 
 To summarize, the model now implements all the basic functions of a revision control system in a simple, portable and truly decentralized way.
 
@@ -551,7 +540,7 @@ Animal & 69.9Mb & 1.1Mb & 252Kb & 254Ka & 28Kc & 3.45Mb\\
 \caption{Space consumed by full-history storage in misc formats; postfix ``b'' stands for bytes, ``c'' for Unicode chars (1-2 bytes, depending on charset and encoding), ``a'' for 5-form atoms (5-10 bytes).} \label{fig:sizes} % Megabytes are decimal.
 \end{figure}
 
-To estimate growth dynamics and overhead of a weave, I plotted weave size evolution for five Wikipedia articles of different classes (se Fig.~\ref{fig:weave}), using the January 2008 enwiki dump.
+To estimate growth dynamics and overhead of a weave, I plotted weave size evolution for five Wikipedia articles of different types (see Fig.~\ref{fig:weave}), using the January 2008 enwiki dump.
 The articles used were ``Coca-Cola'' (popular), ``Joseph Stalin'' (popular, big, controversial), ``Goulash'' (obscure), ``Animal'' (popular, term), ``2007'' (popular, big, year).
 %Weaves were derived from the full history dump dated January 2008.
 The first finding is that article evolution depends a lot on the human factor, e.g. the ``editorial pressure'' keeping the article size within bounds.
@@ -568,7 +557,7 @@ I have compared six formats: bare snapshots, gzip and 7zip of snapshots, {\tt we
 As a rule of thumb, \emph{full} weave size may be estimated as x100 the plain text size.
 Mass of a pre-filtered weave is likely be around text size times 5 or 10, depending on charset/encoding, which factor is defined by the form-5 overhead.
 Interestingly enough, a gzip of snapshots is far worse than an uncompressed weave.
-A 7zip archive is better off, its main shortcoming being high CPU consumption. It took around 20 seconds to 7zip-unpack some of the articles, which makes the format  suitable for backup purposes only.
+A 7zip archive is better off, its main shortcoming being high CPU consumption. It took around 20 seconds to 7-unzip some of the articles, which makes the format  suitable for backup purposes only.
 
 As a conclusion, the space efficiency of {\tt weave5c} as a versioned text format is comparable to the space efficiency of a git repository storing the same page history.
 Thus, {\tt weave5c} is effective as a server-side versioned text format, although vandalism better be cleared, as it may arbitrarily inflate the overhead.
@@ -633,7 +622,7 @@ Instead of reshuffling basic events that happen at different times at different 
 As a consequence, quite differently from operational transformation schemes, causal trees absolutely lack the transformation aspect: atomic operations stay intact and interact in simple predictable ways.
 
 \subsection{Post-OT schemes}
-The reliance on atom ids makes CT similar to the WOOT~\cite{woot} transformationless OT scheme that also abandons positional logic in favor of unique atom identification.
+The reliance on atom ids makes CT similar to the WOOT transformationless OT scheme~\cite{woot} that also abandons positional logic in favor of unique atom identification.
 While WOOT records both left and right neighbors of a newly introduced atom, CT records just one (the ``cause''). 
 In some situations, indeed, CT has to mention the second neighbor using the \zero ~atom, but that is an exception.
 WOOT avoided using vector clocks, based on the assumption that the size of a vector is proportional to the total number of participants.
@@ -683,7 +672,7 @@ Eventually, decentralized version control with easy forking and easy merge of br
 Currently, those ideas are manifested in the design of the git RCS.
 Unfortunately, the git is not Web-ready.
 It is precisely fit for its current purpose and it was never intended to run in a browser or to be simple enough, etc.
-Empowering the regular user with the advanced collaboration and revision control toolset might be a worthy objective.
+%Empowering the regular user with the advanced collaboration and revision control toolset might be a worthy objective.
 
 
 \subsection{Google Wave}  \label{sec:waveot}
@@ -712,10 +701,11 @@ their complete histories.
 
 %While many previous revision control technologies were either fully distributed or real-time or Web-based, the causal trees combine all that at once.
 
-The CT model makes four main contributions. First, it allows to implement first-class real-time collaborative editing in the browser (as in Google Docs). Second, it allows that not only in a client-server setting, but in a network of any topology. That enables highly decentralized workflows (like in git). 
+The CT model makes five main contributions. First, it allows to implement first-class real-time collaborative editing in the browser (as in Google Docs). Second, it allows that in a network of any topology, thus enabling highly decentralized workflows (like in git). 
 On the technical side, the third contribution is a simple string-based format for versioned text and trivially portable regex-based algorithms. 
-That enables the fourth contribution which is the deep hypertext capability with instant access to every prior version of a document, per-character authorship information, real-time difference between any two versions and attaching/detaching of branches.
-The fourth one is the most hard to estimate, as there is nothing yet to compare it to.
+The fourth contribution is the deep linking capability, enabling Excel-like referencing for hypertext.
+The fifth contribution is the deep hypertext capability with instant access to every prior version of a document, per-character authorship information, real-time difference between any two versions, attaching/detaching of branches, etc.
+That one is the most hard to estimate, as there is nothing yet to compare it to.
 %causal trees are able of making the critical step from an application to an open format used at mass scale in highly distributed highly heterogeneous environment, which is the Open Web.
 
 
