@@ -3,7 +3,7 @@
 \usepackage{xunicode}
 \usepackage{amsmath}
 \usepackage{graphicx}
-\date{}
+
 \newtheorem{lemma}{Lemma}
 \newcommand{\tighten}{\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}\setlength{\parsep}{0pt}}
 \newenvironment{tightitem}{
@@ -27,10 +27,13 @@
 
 \begin{abstract}
 While text versioning was definitely a part of the original hypertext concept~\cite{nls,literary,hyp-ed-sys}, it is rarely considered in this context today.
-Still, we know that revision control underlies the most exciting social co-authoring projects of today's Internet, namely the Wikipedia and the Linux kernel.
-With an intention to adapt the advanced revision control technologies and practices to the conditions of the Open Web, the paper reconsiders some obsolete assumptions and develops a new versioned text format perfectly processable with standard regular expressions (PCRE~\cite{pcre}).
-The resulting \emph{deep} hypertext model extends the linking concept from inter-document associations to intra-document dependencies and evolution.
-As the most promising consequence, it allows distributed and real-time revision control in the Open Web, i.e. co-evolution and mutation exchange among multiple competing versions of the same text. 
+Still, we know that revision control underlies the most exciting social co-authoring projects of the today's Internet, namely the Wikipedia and the Linux kernel.
+With an intention to adapt the advanced revision control technologies and practices to the conditions of the Web, the paper reconsiders some obsolete assumptions and develops a new versioned text format perfectly processable with standard regular expressions (PCRE~\cite{pcre}).
+The resulting \emph{deep} hypertext model allows instant access to past/concurrent versions, authorship, changes; enables deep links to reference changing parts of a changing text.
+% real-time collaboration and decentralized workflows.
+%extends the linking concept from inter-document associations to intra-document dependencies and evolution.
+%As the most promising consequence,
+Effectively, it allows distributed and real-time revision control on the Web, implementing the vision of co-evolution and mutation exchange among multiple competing versions of the same text. 
 
 \end{abstract}
 
@@ -69,7 +72,7 @@ Apart from the promise of scalability, the technology potentially improves usabi
 
 To give an introduction to the technical part of the problem we devote Section~\ref{sec:scm} to review the technological foundations of revision control. 
 %As it was said, Wikipedia's technology is lagging 20 to 30 years behind the state of the art in the source code management field. 
-In Section~\ref{sec:textile}, we proceed to the focal topic of this paper which is the adaptation of advanced revision control technologies for Open-Web hypertext versioning. As a result, we come up with a vision of \emph{deep} hypertext carrying its history, authorship attribution and internal dependencies.
+In Section~\ref{sec:textile}, we proceed to the focal topic of this paper which is the adaptation of advanced revision control technologies for hypertext versioning on the Web. As a result, we come up with a vision of \emph{deep} hypertext carrying its history, authorship attribution and internal dependencies.
 The section outlines a simple hypertext storage format with embedded revision control.
 Then, in Section \ref{sec:algos}, the concept is proven to be practical by implementing both basic and advanced revision control operations, mostly relying on Perl-compatible regular expressions, which are readily available not only in numerous programming languages, but even in the constrained environment of a Web browser, thanks to JavaScript.
 Next, Section~\ref{sec:estim} physical/practical limitations are considered to ensure feasibility of the format and algorithms.
@@ -112,7 +115,7 @@ Distributed revision control takes branching to the limit; the history is seen a
 Mass migration to non-linear development and DRCSes is the most notable trend of past years.
 Linux is developed with the git, Google Code adopted Mercurial~\cite{mercurial}, and numerous open source projects head in the same direction, migrating from legacy CVS or Subversion.
 The advantage of DRCS is the ability to routinely and continuously fork and merge back numerous semi-independent versions of a project.
-Technically, DRCS sees every repository as an independent peer, keeping the entire project's history. The symmetric architecture minimizes client-server roundtrips, has no single point of failure or contention.
+Technically, DRCS sees every repository as an independent peer, keeping the entire project's history. The symmetric architecture minimizes network roundtrips, has no single point of failure or contention.
 On the social side, it facilitates decentralization as well.
 Fundamentally, it allows for better scalability of software development: more people doing more things at once, without causing chaos.
 
@@ -168,7 +171,7 @@ The ``old'' Google Docs, for example, worked with symbol-atoms, possibly using l
 
 \section {Adaptation}   \label{sec:textile}
 
-Back to the objective of adapting advanced version control technology to the Open Web, let's consider the requirements and the corresponding problems of the current technologies (Sec.~\ref{sec:req}). 
+Back to the objective of adapting advanced version control technology to the Web, let's consider the requirements and the corresponding problems of the current technologies (Sec.~\ref{sec:req}). 
 In the same Section, I will outline the proposed solutions.
 In Sec.~\ref{sec:data}, I will introduce three basic data structures used in this work: a variant of weave, a variant of vector timestamp (weft), and a kind of operation log (yarn). Data structures are string-based, processed with regular expressions (i.e. stackless algorithms). That guarantees they are \emph{simple} in the very formal sense.
 In Sec.~\ref{sec:siblord}, I address the case of concurrent changes and prove the CCI correctness.
@@ -218,7 +221,7 @@ So, at this point we may use three forms of tuples to encode an atom. The simple
 Single symbols are linked into a text through the causality relation.
 A symbol is said to be \emph{caused} by its preceding symbol at the time of insertion.
 This adds three other forms: 5-form (the symbol, its own id, its causing id), 3c-form (the symbol and the causing id) and 5c-form (the same as 5-form, but the causing atom id goes first).
-Further on, all data structure names will be postfixed with the the form they use, e.g. {\tt yarn3c} or {\tt atom5c}, see Fig.~\ref{fig:forms}.
+Further on, all data structure names will be postfixed with the form they use, e.g. {\tt yarn3c} or {\tt atom5c}, see Fig.~\ref{fig:forms}.
 
 \begin{figure}[t]
 \includegraphics[width=0.49\textwidth]{feedsnweaves-5.pdf}
@@ -310,10 +313,10 @@ Thus, all the newcomer's positions in all the {\tt weftI}s would have equal zero
 Relativistic effects are prevented by the fact that awareness {\tt weftI} does not depend on the observer.
 Hence, the awareness weft order is the same for all observers and never flips.
 
-\begin{lemma}
-CCI holds for causal trees. 
+\begin{lemma} 
+CCI holds for causal trees. \label{lemma:cci}
 \end{lemma}
-\begin{proof}
+\begin{proof} 
 Any changes to the text are expressed as new branches  of the causal tree; any concurrent changes (i.e. branches) are unambiguously merged and the resulting text is defined by the causal/awareness/weft order.
 Let's go through the CCI requirements.
 First, the causality preservation is achieved by adding changes in their awareness order. Once a cause of an atom is unknown, neither the atom, nor the rest of the yarn should not (could not) be precessed.
@@ -477,7 +480,9 @@ As long as the point of attachment still exists in the text, a branch might be c
 Otherwise, it is attached ``uncleanly'' into approximately the same place.
 Differently from the diff-patch paradigm, the process does not depend on mutations of the context, demands no heuristics, combinatorics or manual intervention. Changes are detachable and, generally, more manageable, as CT tracks each symbol's origins and dependencies.
 
-Symbol-precise addressing also opens the possibility of \emph{deep linking}, i.e. referencing particular ranges in a changing text or particular versions of the text, or both. That extends the capabilities of both linking and transclusion, up to the possibility of Excel-like referencing of text ranges.
+Symbol-precise addressing also opens the possibility of \emph{deep linking}, i.e. referencing particular ranges in a changing text or particular versions of the text, or both.
+Very much like in a spreadsheet, we identify each symbol with its yarn and offset. Two identifiers specify a range which withstands document mutations; e.g. the [a2:a4) range at Fig.~\ref{fig:ds} first corresponds to ``es'', then to ``ex'' (or, more precisely, ``ex\zero{s}\bsp'').
+That empowers both linking and transclusion, up to the possibility of Excel-like referencing of text ranges.
 
 To summarize, the model now implements all the basic functions of a revision control system in a simple, portable and truly decentralized way.
 
@@ -527,13 +532,13 @@ As the saying goes, ``devil is in the details'', so let's consider the actual nu
 \resizebox{0.48\textwidth}{!} {
 \begin{tabular}{|c|r|r|r|r|r|r|}
 \hline
-Article & snapsh. & .gz & .7z & {\tt weave5c} & {\tt text1} & git \\
+\em article & snapsh. & .gz & .7z & {\tt weave5c} & {\tt text1} & git \\
 \hline
-Coca-Cola& 254Mb &78.4Mb & 482Kb & 1.13Ma & 52Kc & 9.25Mb\\
-J. Stalin&754Mb& 281Mb&891Kb& 1.38Ma&137Kc& 10.6Mb\\
-Goulash&2.2Mb&45Kb&26Kb&46Ka&8.6Kc& 348Kb\\
-Animal & 69.9Mb & 1.1Mb & 252Kb & 254Ka & 28Kc & 3.45Mb\\
-2007 & 609Mb & 191Mb & 782Kb & 967Ka & 122Kc & 10Mb\\
+\em Coca-Cola& 254Mb &78.4Mb & 482Kb & 1.13Ma & 52Kc & 9.25Mb\\
+\em J. Stalin&754Mb& 281Mb&891Kb& 1.38Ma&137Kc& 10.6Mb\\
+\em Goulash&2.2Mb&45Kb&26Kb&46Ka&8.6Kc& 348Kb\\
+\em Animal & 69.9Mb & 1.1Mb & 252Kb & 254Ka & 28Kc & 3.45Mb\\
+\em 2007 & 609Mb & 191Mb & 782Kb & 967Ka & 122Kc & 10Mb\\
 \hline
 \end{tabular}
 }
@@ -581,11 +586,10 @@ For native (non-regex) implementations, tradeoffs might be different; e.g. a {\t
 
 \subsection{Sectioned model}	\label{sec:sec}
 
-The causal trees model exclusively considers plain/flat text; formatted text is often modeled as a tree structure, e.g. HTML's Document Object Model (DOM)~\cite{dom}.
+The causal trees model exclusively considers plain text; formatted text is often modeled as a tree structure, e.g. HTML's Document Object Model (DOM)~\cite{dom}.
 I will sketchily address this concern.~\footnote{My understanding of what should and what should not be done here is based on the experience of building a chain of prototypes over the past years~\cite{www06,csr07,wikisym08}.} 
-
 While DOM imposes hierarchical structure on formatted text, the text per se was not historically considered hierarchical, except probably for its bigger units, i.e. \emph{sections}. 
-As an example, remember LaTeX, the RFC text format, the wikitext or even the early pre-DOM HTML: the text is considered to be a flow of words and markup elements, the only hierarchically structured parts are sections/subsections.
+Examples are LaTeX, the RFC text format, the wikitext or even the early pre-DOM HTML: the text is considered to be a flow of words and markup elements, the only hierarchically structured parts are sections/subsections.
 Even browsers, as a matter of fact, start parsing with the ``tag soup'' model, later applying heuristics to transform it into an orderly tree. 
 
 Note the open possibility to handle units of text hierarchical structure (sections) separately.
@@ -597,11 +601,13 @@ With equal ease, it allows to prune old history once an article is refactored.
 Removed sections are still mentioned in histories of their parent sections, so historical revisions of the whole document can be recovered. At the same time, long-dead parts do not clutter the weaves currently in use.
 Last but not least, the sectioned structure allows to relax the 50,000 authors limitation: a single section might not have 50K symbols, not to mention authors.
 
-Back to HTML, the correct XHTML structure cannot be guaranteed when merging concurrent modifications. For example, two overlapping tag ranges cannot be merged correctly in the general case, e.g. 
-{\small \verb+<i>Quick <b>brown</i> fox</b>+. }\\
-That of course returns us to the tag soup situation; but that is the state of the things anyway and  browsers are good in dealing with it. 
-Once the correct hierarchical structure of the text is ensured by the structure of (isolated) sections, best-effort merge of decorative tags within sections may be offloaded to the browser.
-In either case, this alternative seems more practical than distributed real-time revision control of DOM trees (see Sec.~\ref{sec:waveot}).
+Back to HTML, the correct XHTML structure cannot be guaranteed when merging concurrent modifications. For example, two overlapping tag ranges cannot be merged correctly in the general case, e.g. {\small \verb+<i>Quick <b>brown</i> fox</b>+. }
+On the other hand, now conflicts (the ``tag soup'') are constrained to the less-important markup within sections.
+%we may prioritize consistency over correctness and merge the markup in the best-effort mode.
+%That of course returns us to the tag soup situation; but that is the state of the things anyway and  browsers are good in dealing with it, so the merge of decorative tags within sections might be done in best-effort mode.
+%When merging decorative tags, the price of 
+%Once the correct hierarchical structure of the text is ensured by the structure of (isolated) sections, best-effort merge of decorative tags within sections may be offloaded to the browser.
+%In either case, this alternative seems more practical than distributed real-time revision control of DOM trees (see Sec.~\ref{sec:waveot}).
 
 
 \section{Related work} \label{sec:reflections}
@@ -611,7 +617,7 @@ Not to limit ourselves to feature-by-feature comparisons, I will put the CT mode
 
 \subsection{Operational Transformation} \label{sec:ot}
 
-The causal model fulfills three requirements of the OT CCI correctness model (see Sec.~\ref{sec:siblord} for one-paragraph proof).
+The causal model fulfills three requirements of the OT CCI correctness model (see Lemma~\ref{lemma:cci}).
 %Causality preservation holds by design, as an atom is never introduced to the weave before all any of the atoms it is aware of.
 %Convergence is insured as the order of atoms in a weave does not depend on the order of arrival.
 %Intention preservation, in the sense of applying changes to a wrong position in the text, is trivially solved: the logic is not positional.
@@ -702,10 +708,10 @@ their complete histories.
 %While many previous revision control technologies were either fully distributed or real-time or Web-based, the causal trees combine all that at once.
 
 The CT model makes five main contributions. First, it allows to implement first-class real-time collaborative editing in the browser (as in Google Docs). Second, it allows that in a network of any topology, thus enabling highly decentralized workflows (like in git). 
-On the technical side, the third contribution is a simple string-based format for versioned text and trivially portable regex-based algorithms. 
+On the technical side, the third contribution is a simple string-based versioned text format and trivially portable regex-based algorithms. 
 The fourth contribution is the deep linking capability, enabling Excel-like referencing for hypertext.
 The fifth contribution is the deep hypertext capability with instant access to every prior version of a document, per-character authorship information, real-time difference between any two versions, attaching/detaching of branches, etc.
-That one is the most hard to estimate, as there is nothing yet to compare it to.
+The value of the fifth contribution is harder to estimate, as there is nothing yet to compare it to.
 %causal trees are able of making the critical step from an application to an open format used at mass scale in highly distributed highly heterogeneous environment, which is the Open Web.
 
 
